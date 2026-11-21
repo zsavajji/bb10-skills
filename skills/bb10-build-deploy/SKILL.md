@@ -5,9 +5,9 @@ description: Build, package, lint, install and debug BlackBerry 10 apps — the 
 
 # Build, package and install BB10 apps
 
-Scripts: `scripts/` in this skill's folder (`base-bb10/skills/bb10-build-deploy/scripts/`): `cascades-qmllint.sh`
+Scripts: `scripts/` in this skill's folder ([skills/bb10-build-deploy/scripts/](scripts)): `cascades-qmllint.sh`
 (with `qmltypes6.py`, `qtquick1.qmltypes`) and `check-qml-handlers.py`. The build pipeline is written up in
-`base-bb10/docs/`; this skill keeps the short, correct version and links the doc.
+`docs/`; this skill keeps the short, correct version and links the doc.
 Every phone is rooted, nothing is signed, 10.3.3 is the last OS: [01](../../docs/01-target-and-rules.md).
 
 ## Toolchains
@@ -42,7 +42,7 @@ LIBS += -L$$(QNX_TARGET)/armle-v7/lib/gcc/4.6.3 -lcpp
 
 Docker here is **rootless**: files written as root in the container belong to the user on the host. Never `chown` inside the
 container (uid 100999 locks the user out). zsh does not word-split `$vars`; wrap loops in `sh -c`/`bash -c`. The mount covers only
-the project: copy files from sibling repos in first. A single-quoted `bash -c '...'` block cannot hold an apostrophe.
+the project: copy files into the project first. A single-quoted `bash -c '...'` block cannot hold an apostrophe.
 More Docker traps (sleep, OrbStack, stale file sizes): [03](../../docs/03-toolchains.md) section 4.
 
 ## Build a Cascades app
@@ -179,7 +179,7 @@ Every phone is rooted and runs unsigned packages (signing servers died in Januar
 `-sign`, no `-devMode`. Never spend time on keystores, author certificates or debug tokens. Routes, in order of use:
 
 1. **The installer's PPS job object over root SSH** ([10](../../docs/10-phone-access-and-install.md) section 4). **An agent uses it only
-   when the user says so, each time**; approval does not carry over. Recipe, from `phoenix/scripts/install-phone.sh`:
+   when the user says so, each time**; approval does not carry over. Recipe, from [samples/phone/install-phone.sh](../../samples/phone/install-phone.sh):
    ```sh
    scp -q bar.bar bb10rootx:/var/rootdata/N.bar
    ssh bb10rootx 'chmod 644 /var/rootdata/N.bar
@@ -200,7 +200,7 @@ Every phone is rooted and runs unsigned packages (signing servers died in Januar
 - **`ssh bb10rootx` is the cable, not a phone**: it reaches the Q10 or the Classic. Check
   `ssh bb10rootx 'grep modelname /pps/services/deviceproperties'` before naming the phone.
 - **Running a test binary by hand**: a new file runs only after `/proc/boot/pathtrust !<file>` (always the `!`; a refused file stays
-  refused, even on a reused inode); `tengram/scripts/push.sh` shows the pattern ([10](../../docs/10-phone-access-and-install.md) section 3).
+  refused, even on a reused inode); [samples/phone/push.sh](../../samples/phone/push.sh) shows the pattern ([10](../../docs/10-phone-access-and-install.md) section 3).
   Root cannot execute an installed app's binaries: test an installed build through the navigator.
 
 ## On the phone

@@ -1,0 +1,165 @@
+#ifndef CALLVIDEO_H
+#define CALLVIDEO_H
+
+#include "CameraEncoder.h"
+#include "VideoDecoder.h"
+#include "VideoWindow.h"
+
+#include <QAtomicInt>
+#include <QByteArray>
+#include <QMutex>
+#include <QObject>
+#include <QString>
+#include <QStringList>
+#include <QThread>
+#include <QTimer>
+
+class EngineLink;
+
+// The video of the live call (docs/protocol2.md, "Video in calls"): the camera and the screen belong
+// to the UI process, the engine keeps the call. start() opens a third loopback connection, says
+// hello with the call's id, then two threads work: one reads the peer's H.264 access units from the
+// socket into the hardware decoder and its window (VideoWindow, turned upright by the orientation
+// each record carries); the other opens the camera's hardware encoder while `sending` is on and
+// the link is up, and the encoder's callback writes our access units to the socket. A call without
+// the link has no picture and keeps going. A group call (docs/plan/phase7e.md) has up to 4 tiles,
+// each a decoder and a window: a record's tile is the flags' high byte, tile 0 is the only one of
+// a 1:1 call and opens with the link, the others at their first record.
+class CallVideo : public QObject, private CameraEncoder::Sink
+{
+    Q_OBJECT
+    // True from the engine's hello reply until the link ends.
+    Q_PROPERTY(bool running READ running NOTIFY runningChanged)
+    // Our camera is open and its pictures go out (QML sets it from the call event's videoOurs).
+    // False closes the camera.
+    Q_PROPERTY(bool sending READ sending WRITE setSending NOTIFY sendingChanged)
+    // The front camera; false is the rear. Changing it while sending reopens the camera.
+    Q_PROPERTY(bool front READ front WRITE setFront NOTIFY frontChanged)
+    // Our camera runs 16:9 (the step at 1280x720); the self-view control follows the step it runs at, the others are 4:3.
+    Q_PROPERTY(bool wide READ wide NOTIFY wideChanged)
+    // Our camera runs in its own portrait size, 352x640 (Settings' cameraCrop, 9:16): the peer's picture and
+    // the self-view are 9:16. The self-view control follows it (CallVideoView.qml).
+    Q_PROPERTY(bool cropped READ cropped NOTIFY croppedChanged)
+    // The peer's picture as it is shown, after turning: 0 x 0 until the first frame.
+    Q_PROPERTY(int pictureWidth READ pictureWidth NOTIFY pictureChanged)
+    Q_PROPERTY(int pictureHeight READ pictureHeight NOTIFY pictureChanged)
+    // Bit i is set while tile i's window has a picture (tile 0's is pictureWidth/Height).
+    Q_PROPERTY(int tileMask READ tileMask NOTIFY pictureChanged)
+public:
+    explicit CallVideo(EngineLink *engine, QObject *parent = 0);
+    ~CallVideo();
+
+    bool running() const { return m_running; }
+    bool sending() const { return m_sending != 0; }
+    bool front() const { return m_front != 0; }
+    bool wide() const { return m_wide; }
+    bool cropped() const { return m_cropped; }
+    int pictureWidth() const { return m_picW; }
+    int pictureHeight() const { return m_picH; }
+    int tileMask() const { return m_tileMask; }
+    void setSending(bool on);
+    void setFront(bool on);
+
+    // Replaces any earlier video. remoteWindowIds (one per tile, 0 to 3) and viewfinderWindowId are
+    // ids of ForeignWindowControls that exist: the peers' pictures go to the first four, our
+    // camera's own viewfinder is adopted by the last. Returns at once: the link, the decoders and
+    // the camera open on their threads.
+    Q_INVOKABLE void start(const QString &callId, const QStringList &remoteWindowIds, const QString &viewfinderWindowId);
+    // Joins both threads (the camera and the decoders closed; a camera that is still opening makes
+    // it a few seconds) and frees the windows. Safe to call twice, and when nothing runs.
+    Q_INVOKABLE void stop();
+    // The size of tile 0's picture control, for the crop (VideoWindow::setViewSize), and of any
+    // tile's.
+    Q_INVOKABLE void setViewSize(int w, int h) { setTileViewSize(0, w, h); }
+    Q_INVOKABLE void setTileViewSize(int tile, int w, int h);
+    // Logs where each tile's window is, as the people drawer settles: whether native windows follow
+    // the page's slide (7e; they hid in 0.0.1.264).
+    Q_INVOKABLE void logWindows(const QString &why);
+
+signals:
+    void runningChanged();
+    void sendingChanged();
+    void frontChanged();
+    void wideChanged();
+    void croppedChanged();
+    void pictureChanged();
+
+public slots:
+    // The largest size our camera goes to, Settings' videoQuality: 0 is 1280x720, 1 is 640x480, 2 is
+    // 320x240. The camera steps between sizes under it by the peer's allowance; a cap that is now
+    // below the running size reopens the camera at the camera thread's next look. UI thread.
+    void setQuality(int quality);
+    // Settings' cameraCrop: our camera runs 352x640, at every step. A change while sending reopens the
+    // camera at the camera thread's next look. UI thread.
+    void setCrop(bool on);
+
+private slots:
+    void setRunning(bool on);
+    void setWide(bool on);
+    void tick();
+
+private:
+    // One QThread type for both loops; run() calls back into the owner.
+    class Worker : public QThread
+    {
+    public:
+        Worker(CallVideo *owner, bool camera) : m_owner(owner), m_camera(camera) {}
+    protected:
+        void run();
+    private:
+        CallVideo *m_owner;
+        bool m_camera;
+    };
+    friend class Worker;
+
+    static const int Tiles = 4;
+
+    // One tile: a window and the decoder that draws into it.
+    struct Tile
+    {
+        enum State { Idle, Decoding, Dropped };
+        Tile() : decoder(&window), hasWindow(false), state(Idle) {}
+        VideoWindow window;
+        VideoDecoder decoder;
+        bool hasWindow;        // set by start(), before the reader begins
+        State state;           // the reader thread's: Dropped is a decoder that would not open
+        QAtomicInt refused;    // pictures the decoder had no input buffer for
+    };
+
+    void accessUnit(const QByteArray &annexB, qint64 tsUs, bool keyframe, int orientation);
+    void sendRecord(int type, int orientation, int flags, qint64 tsUs, const QByteArray &payload);
+    void readLoop();
+    void cameraLoop();
+    bool openLink();
+    void closeLink();
+    bool openTile(int tile, bool midStream);
+    void summarize();
+
+    EngineLink *m_engine;
+    Tile m_tile[Tiles];
+    CameraEncoder m_encoder;
+    Worker m_reader;
+    Worker m_camera;
+    QTimer m_timer;
+    QString m_callId;
+    QByteArray m_group, m_viewfinderId;
+    int m_fd;                  // the video link; -1 when none
+    QMutex m_fdLock;           // so stop()'s shutdown never meets a closed, reused descriptor
+    QMutex m_sendLock;         // one send at a time; closeLink() waits for it before it closes the fd
+    QAtomicInt m_linked;       // the link is up; only set and cleared with m_sendLock held
+    QAtomicInt m_stopping;
+    QAtomicInt m_sending, m_front;
+    QAtomicInt m_quality;      // 0 to 2, an index into the steps: the camera never runs a step before it
+    QAtomicInt m_target;       // the peer's allowance for our video, from the engine's type-3 record; 0 until it comes
+    QAtomicInt m_step, m_cameraBps; // the camera thread's: the step it runs at and the bit rate it set, for the summary
+    QAtomicInt m_crop;         // the 9:16 crop is on
+    QAtomicInt m_keyframeWanted;   // the peer asked; the camera thread passes it on
+    QAtomicInt m_recordsIn;
+    bool m_running;
+    bool m_wide;
+    bool m_cropped;            // m_crop for the UI thread
+    int m_picW, m_picH, m_tileMask;
+    int m_ticks;
+};
+
+#endif

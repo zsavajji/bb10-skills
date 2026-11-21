@@ -2,7 +2,7 @@
 
 Read when: you build or change a `ListView`, a data model, list rows (QML or C++), a chat-style list that starts at the bottom, or a list that lags.
 Entry form: symptom -> cause -> fix, tag, where seen. Tags are those of `../SKILL.md` (**[Q10]**, **[Classic]**, **[Passport]**, **[SDK]**, **[app]**,
-**[other platform]**, **[untested]**). Source for entries without another one: `hyperberry/docs/plan/pitfalls.md` "Lists" (HyperBerry 0.0.1.x, Q10).
+**[other platform]**, **[untested]**). Source for entries without another one: HyperBerry's pitfalls notes, "Lists" (HyperBerry 0.0.1.x, Q10).
 
 ## Layout and context
 

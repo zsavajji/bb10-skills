@@ -121,7 +121,7 @@ Each of these changes the phone's state outside our scratch folder, except the f
 - **By hand, over root SSH (the main route).** `ssh bb10rootx` is a root shell over USB; it reaches the Q10 or the Classic (check `modelname`).
   Copy the program into the app's scratch folder (`/root/<app>`) and trust that one file: `/proc/boot/pathtrust !<file>` (always the `!`: without it the
   whole filesystem is trusted). A file it refused stays refused, even a new file reusing its inode, so every build gets a fresh name
-  (`<name>-<sha8>-<n>`), goes through `/dev/shmem`, and a refused copy is emptied and parked in `denied/`. `tengram/scripts/push.sh` is the generic
+  (`<name>-<sha8>-<n>`), goes through `/dev/shmem`, and a refused copy is emptied and parked in `denied/`. [samples/phone/push.sh](../../samples/phone/push.sh) is the generic
   script (verbatim in [10](../../docs/10-phone-access-and-install.md) section 3). Run it with `</dev/null`, in the background when it serves.
   The phone's shell has no `head`, `tr`, `uniq`, `printf`: filter on the Mac.
 - **A program started over ssh cannot load a shared library of ours**: `mmap` fails with EPERM for a `.so` outside the system's trusted file system,

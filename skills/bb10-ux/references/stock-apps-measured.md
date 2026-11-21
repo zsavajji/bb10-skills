@@ -2,7 +2,7 @@
 
 Read when: you match a stock BB10 screen (the music player, Text Messages, BBM) and want the numbers the apps already took from screenshots.
 Tags: **[Q10]** measured from the user's screenshots on the Q10; **[app]** what an app built from them. Write sizes as `ui.du(px / 9)`.
-Sources: `hyperberry/docs/plan/ui.md` (2026-10-28), `bbmusic/docs/plan/ui.md` (2026-11-14), `base-bb10/docs/13-design-and-screens.md` section 2.
+Sources: HyperBerry's UI notes (2026-10-28), BBMusic's UI notes (2026-11-14), [docs/13-design-and-screens.md](../../../docs/13-design-and-screens.md) section 2.
 
 ## Stock Text Messages (HyperBerry) [Q10]
 

@@ -26,7 +26,7 @@ indexed by topic in `references/samples.md`.
    `bb.data 1.0`, `bb.device 1.x`, `bb.platform 1.x`, `bb.multimedia 1.x`,
    `bb.cascades.pickers 1.0`. Write `import bb.cascades 1.4` unless older OS support is a goal.
 2. **Verify an API before using it — never guess a property name.** Run
-   `scripts/cascades-qmllint.sh` in bb10-build-deploy's folder (`base-bb10/skills/bb10-build-deploy/scripts/`)
+   `scripts/cascades-qmllint.sh` in bb10-build-deploy's folder ([skills/bb10-build-deploy/scripts/](../bb10-build-deploy/scripts))
    once; it caches the NDK's type info in `~/.cache/bb10-qmllint/imports`. Then:
    ```sh
    Q=~/.cache/bb10-qmllint/imports/bb/cascades/plugins.qmltypes

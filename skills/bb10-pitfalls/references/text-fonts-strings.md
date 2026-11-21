@@ -1,8 +1,8 @@
 # Text, fonts and strings
 
 Read when: you show text a user wrote, use emoji or a custom font, set label margins or sizes, translate, or see odd characters.
-Entry form: symptom -> cause -> fix, tag, where seen. Tags as in `../SKILL.md`. Source: `hyperberry/docs/plan/pitfalls.md` "Text, fonts and strings",
-`hyperberry/docs/plan/ui.md` "Emoji", `base-bb10/docs/13-design-and-screens.md` section 6.
+Entry form: symptom -> cause -> fix, tag, where seen. Tags as in `../SKILL.md`. Source: HyperBerry's pitfalls notes "Text, fonts and strings",
+its UI notes "Emoji", [docs/13-design-and-screens.md](../../../docs/13-design-and-screens.md) section 6.
 
 - **"typing..." shows as "typingà|"; non-ASCII from C++ is garbage** -> Qt 4's `tr()` and C string literals are read as Latin-1. Fix: in `main()`,
   `QTextCodec::setCodecForTr` and `setCodecForCStrings` to UTF-8; `QTextStream` needs `setCodec("UTF-8")`; `CODECFORTR`/`CODECFORSRC = UTF-8` in the `.pro` for `lupdate`. [Q10] (Tengram, 2026-10-31)

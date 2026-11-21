@@ -14,58 +14,54 @@
   no `blackberry-keytool`, no `blackberry-debugtokenrequest`, no author certs, no
   `bbidtoken.csk`. Package with `-devMode` and deploy directly.
 
-## Canonical reference: Tengram (READ IT FIRST)
+## Reference code: samples/
 
-[tengram](https://github.com/zsavajji/tengram) is its own repo, checked out beside this one on the author's machine as `../tengram` (not
-inside base-bb10). It is a real, complete BB10 Cascades app (a Telegram client) with a headless C++20 engine, and
-the reference for how these apps are built. Prefer copying its patterns over any generic web guide. Layout:
+This repo is self-contained: the code the docs refer to is in [samples/](samples/), copied from four real,
+complete BB10 apps (Tengram, a Telegram client with a headless C++20 engine; HyperBerry; BBMusic; Phoenix).
+Prefer copying its patterns over any generic web guide. The samples are reference code, not built in this
+repo. What each dir holds:
 
-```
-tengram/
-├── app/                      # the Cascades UI
-│   ├── tengram.pro           # plain qmake executable: QT, LIBS, gcc 4.8.3 + gnu++11
-│   ├── bar-descriptor.xml    # permissions, invoke targets, env vars (LD_LIBRARY_PATH, CASCADES_THEME)
-│   ├── src/                  # C++: main.cpp, EngineLink (talks to the engine), models, controllers, cards
-│   ├── assets/               # one .qml per page, cover.qml, small .js helpers, images, fonts
-│   ├── helper/, translations/, tests/
-├── engine/                   # tengramd, the headless engine (C++20 over TDLib), a separate process
-├── calls/                    # the calls library
-├── lib/                      # third-party sources: libwebp, omxil, qrcodegen, qtsqlcipher
-├── scripts/, docker/         # build and install scripts, the build images
-└── docs/, NOTES.md, CLAUDE.md
-```
+| Dir | Holds |
+|-----|-------|
+| [samples/ui/](samples/ui/) | the Cascades UI: `.pro` files (plain qmake executable: QT, LIBS, gcc 4.8.3 + gnu++11), `main.cpp`, UI log, build and icon scripts |
+| [samples/descriptor/](samples/descriptor/) | `bar-descriptor.xml` in three shapes (child process, headless engine, full: Hub, share, timer) |
+| [samples/cookbook/](samples/cookbook/) | the API recipes below: share, query targets, SQLite from C++, theme, boot timer, cover, snippets, sign-in card |
+| [samples/engine-link/](samples/engine-link/), [samples/engine-cxx20/](samples/engine-cxx20/), [samples/engine-go/](samples/engine-go/) | the UI-to-engine link and the engines |
+| [samples/docker/](samples/docker/), [samples/third-party/](samples/third-party/) | build images and third-party builds |
+| [samples/headless/](samples/headless/), [samples/phone/](samples/phone/) | memory patch, install and test scripts for the phone |
+| [samples/video/](samples/video/), [samples/audio/](samples/audio/), [samples/design/](samples/design/), [samples/lists/](samples/lists/) | video, audio, design and list code |
 
-Pattern (confirmed in `app/src/main.cpp`): C++ owns the models and controllers and exposes each to QML with
+Pattern (confirmed in [samples/ui/main.cpp](samples/ui/main.cpp)): C++ owns the models and controllers and exposes each to QML with
 `document->setContextProperty("chats", &chats)` and the like; the QML pages call `controller.method(...)` and bind
 to `Q_PROPERTY` values and list models. The UI never does network work itself: `EngineLink` talks to the engine
 process ([docs/02-architecture.md](docs/02-architecture.md)).
 
-## BB10 API cookbook — real techniques (Tengram `app/src/` unless noted)
+## BB10 API cookbook — real techniques (from Tengram unless noted; files in [samples/cookbook/](samples/cookbook/))
 
 Concrete, hard-to-find-now recipes, with the exact classes and where they live:
 
 | Task | How | Where |
 |------|-----|-------|
-| Share (target picker) | `bb::system::InvokeManager` + `InvokeRequest` (`action=bb.action.SHARE`, `mimeType`, `setData`) | `OpenRequests.cpp` |
-| Enumerate targets | `InvokeQueryTargetsRequest`/`Reply`, iterate `actions()`→`targets()` | `MapChooser.cpp` |
-| Open URL in browser | `InvokeRequest` `target="sys.browser"`, `action="bb.action.OPEN"` | `LinkPreview.cpp`, `MapChooser.cpp` |
+| Share (target picker) | `bb::system::InvokeManager` + `InvokeRequest` (`action=bb.action.SHARE`, `mimeType`, `setData`) | [OpenRequests.cpp](samples/cookbook/OpenRequests.cpp) |
+| Enumerate targets | `InvokeQueryTargetsRequest`/`Reply`, iterate `actions()`→`targets()` | [MapChooser.cpp](samples/cookbook/MapChooser.cpp) |
+| Open URL in browser | `InvokeRequest` `target="sys.browser"`, `action="bb.action.OPEN"` | [MapChooser.cpp](samples/cookbook/MapChooser.cpp) |
 | Compose email | `InvokeRequest` `target="sys.pim.uib.email.hybridcomposer"`, `mailto:` URI | no Tengram example |
-| Clipboard | `bb::system::Clipboard`, `insert("text/plain", bytes)` | `ChatController.cpp` |
-| Active Frame | a **separate `cover.qml`** (a `SceneCover`), set as the app's cover | `assets/cover.qml`, `assets/main.qml` |
-| App lifecycle (bg/fg) | `Application` signals `thumbnail()` / `fullscreen()` | `EngineLink.cpp` |
+| Clipboard | `bb::system::Clipboard`, `insert("text/plain", bytes)` | [snippets.md](samples/cookbook/snippets.md) |
+| Active Frame | a **separate `cover.qml`** (a `SceneCover`), set as the app's cover | [cover.qml](samples/cookbook/cover.qml) |
+| App lifecycle (bg/fg) | `Application` signals `thumbnail()` / `fullscreen()` | [snippets.md](samples/cookbook/snippets.md) |
 | Media/volume keys | `bb::multimedia::MediaKeyWatcher` (`VolumeUp/Down/PlayPause`), `shortPress`/`longPress`; `eventFilter` fallback for `QKeyEvent` | no Tengram example |
 | Accelerometer / tilt | QtMobility sensors (`CONFIG+=mobility; MOBILITY+=sensors`), a small `OrientationSensor` class | no Tengram example |
-| Runtime dark/bright theme | `Application::themeSupport()->setVisualStyle(VisualStyle::Dark/Bright)` | `Settings.cpp` |
-| App version at runtime | `bb::ApplicationInfo().version()` (reads bar-descriptor; bump the version there only) | `main.cpp` |
-| Screen size | `bb::device::DisplayInfo().pixelSize()`, bucket by resolution | `main.cpp`, `CardStyle.h` |
-| Shared/exported files | `QDir::homePath()+"/shared/..."` (visible in the file manager and on a PC); needs `access_shared` | `MediaOpener.cpp`, `main.cpp` |
+| Runtime dark/bright theme | `Application::themeSupport()->setVisualStyle(VisualStyle::Dark/Bright)` | [Settings-excerpts.cpp](samples/cookbook/Settings-excerpts.cpp) |
+| App version at runtime | `bb::ApplicationInfo().version()` (reads bar-descriptor; bump the version there only) | [snippets.md](samples/cookbook/snippets.md) |
+| Screen size | `bb::device::DisplayInfo().pixelSize()`, bucket by resolution | [snippets.md](samples/cookbook/snippets.md), [samples/design/CardStyle.h](samples/design/CardStyle.h) |
+| Shared/exported files | `QDir::homePath()+"/shared/..."` (visible in the file manager and on a PC); needs `access_shared` | [snippets.md](samples/cookbook/snippets.md) |
 | SQLite from QML | `import QtQuick 1.0` + `openDatabaseSync(...)` (LocalStorage/WebSQL) | no Tengram example |
-| SQLite from C++ | `QSqlDatabase::addDatabase("QSQLITE")` (`QT += sql`); QML LocalStorage DBs live at an opaque path, so C++ must probe for the file | `ChatsDb.cpp` |
+| SQLite from C++ | `QSqlDatabase::addDatabase("QSQLITE")` (`QT += sql`); QML LocalStorage DBs live at an opaque path, so C++ must probe for the file | [ChatsDb.cpp](samples/cookbook/ChatsDb.cpp) |
 | File read/write helper | a header-only `FileIO : QObject` with `Q_INVOKABLE read/write`, exposed to QML (QML cannot do raw file I/O) | no Tengram example |
 
 Permissions these need (add to bar-descriptor): `run_native` (always), `access_shared`,
 `use_camera`, and for a background/Active-Frame app: `run_when_backgrounded`,
-`_sys_run_headless`, `_sys_headless_nostop`. Tengram's `app/bar-descriptor.xml` has a full set.
+`_sys_run_headless`, `_sys_headless_nostop`. Tengram's [bar-descriptor-full.xml](samples/descriptor/bar-descriptor-full.xml) has a full set.
 
 ## Platform stack (three layers)
 
@@ -236,7 +232,7 @@ Build and package with the app's `scripts/build-app.sh` in the NDK image ([docs/
 ## Linking libraries & third-party C/C++ code
 
 - **System libs** via `.pro` `LIBS +=` / `QT +=`. Tengram uses `QT += declarative network sql gui` and
-  `LIBS += -lbbcascades -lbbdevice -lbbdata -lbbsystem -lbb ...` (see `app/tengram.pro`).
+  `LIBS += -lbbcascades -lbbdevice -lbbdata -lbbsystem -lbb ...` (see [samples/ui/app-gcc483.pro](samples/ui/app-gcc483.pro)).
   Rule of thumb: `-lbb*` = BlackBerry platform libs.
 - **Third-party libs**: pinned sources under `lib/` (libwebp, qrcodegen, omxil, qtsqlcipher) compiled into the app by
   the `.pro`, or cross-compiled as static libraries: [docs/06-third-party-libs.md](docs/06-third-party-libs.md).
@@ -262,8 +258,7 @@ MyApp/
 
 ## Reference resources
 
-- **[Tengram](https://github.com/zsavajji/tengram)** — the canonical app. Read it before any web guide;
-  its layout is above.
+- **[samples/](samples/)** — real code from four apps (Tengram among them); see "Reference code" above.
 - **blackberry/Cascades-Samples** (github.com/blackberry/Cascades-Samples) — 100+ real,
   buildable sample apps. Best learning source; clone it. (Archived read-only, still cloneable.)
 - **Cascades API reference:** `developer.blackberry.com/native/documentation/cascades/`

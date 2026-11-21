@@ -2,26 +2,26 @@
 
 Read this when: your app must play a video, show decoded H.264 frames from the network, encode the camera, play or record PCM, keep sound going with the app closed, or show now-playing controls. It also holds the full OpenMAX research, so nobody repeats the failed routes.
 
-Paths in parentheses are relative to the folder that holds the app repos side by side (the author's `bb10/`; adjust to where yours are). Why the engine is a separate process and what stays in the UI: [02-architecture.md](02-architecture.md). The headless service, its descriptor and its memory cap: [09-headless-service.md](09-headless-service.md). Phone rules (every phone rooted, one OS, 10.3.3): [01-target-and-rules.md](01-target-and-rules.md).
+Code referenced here is in [../samples/](../samples/). Why the engine is a separate process and what stays in the UI: [02-architecture.md](02-architecture.md). The headless service, its descriptor and its memory cap: [09-headless-service.md](09-headless-service.md). Phone rules (every phone rooted, one OS, 10.3.3): [01-target-and-rules.md](01-target-and-rules.md).
 
-Evidence labels. **Q10 / Classic (Q20)** with a date and build = seen on that phone. **builds** = compiled, not tried on a phone. **untried** = not even run. Dates 2026-11 are the newest and win over older notes and over the skills. The Classic became the test phone on 2026-11-15 (`bbmusic/docs/plan/status.md`); older notes say "Q10" for it.
+Evidence labels. **Q10 / Classic (Q20)** with a date and build = seen on that phone. **builds** = compiled, not tried on a phone. **untried** = not even run. Dates 2026-11 are the newest and win over older notes and over the skills. The Classic became the test phone on 2026-11-15 (BBMusic's status notes); older notes say "Q10" for it.
 
 ## 1. Decision table
 
 | I need to... | The apps use | Code | Evidence |
 |---|---|---|---|
-| Play a video file full screen | `MediaPlayer` (`bb.multimedia`) into a `ForeignWindowControl`; the file is a local `file://` path | `hyperberry/app/assets/VideoViewer.qml`, `tengram/app/assets/VideoViewer.qml`, `phoenix/app/assets/VideoPage.qml` | Q10 2026-11-12 (stories gate, `hyperberry/docs/plan/stories.md`); Classic 1.0.0.90 for length and refused seek (`tengram` commit `74bb400`); Phoenix: builds |
-| Play a video from a URL | Download to a file first, then play the file. Phoenix's engine fetches, merges and remuxes it | `phoenix/engine/src/media/video.cpp`, `phoenix/engine/src/mp4/` | builds |
-| Show video inside my own page | The same control; the system player creates the window | `StoryViewer.qml` (`hyperberry/app/assets/`) | Q10 2026-11-12 |
-| Decode H.264 frames I receive from the network | OpenMAX **IL**, `OMX.qcom.video.decoder.avc`, `dlopen`ed, in the UI process | `hyperberry/app/src/VideoDecoder.*`, `VideoFormat.cpp`, `VideoOutput.cpp`, `VideoWindow.*` | Q10 0.0.1.190 2026-11-07, up to 4 at once 0.0.1.259 2026-11-11; Classic 2026-11-19 (Tengram) |
-| Encode the camera to H.264 | The camera API's own hardware encoder, `camera_start_encode` (`-lcamapi`, `use_camera`) | `hyperberry/app/src/CameraEncoder.*` | Q10 0.0.1.193 2026-11-07; Classic 0.1.0.49 and .50 2026-11-19 |
-| Play PCM | `libasound` plugin API opened through `audio_manager` (`-lasound -laudio_manager`) | `hyperberry/app/src/CallAudio.cpp`, `bbmusic/engine/src/audio/qsa_sink.cpp` | Q10 2026-11-07 (calls), 2026-11-14 (music) |
-| Play Opus audio | There is no Opus on BB10: decode with static libopus yourself, then PCM (music) or a WAV for `MediaPlayer` (voice notes) | `bbmusic/engine/src/audio/`, `hyperberry/docs/plan/phase0.md` 0.8 | Q10 2026-10-29, 2026-11-14 |
-| Record the microphone | Notes: `AudioRecorder` (48 kHz stereo WAV). Calls: `libasound` capture | `hyperberry/app/assets/Recorder.qml`, `CallAudio.cpp` | Q10 2026-10-29; calls Q10 0.0.1.187 |
-| Keep audio playing with the app closed | The headless engine opens the speaker itself | `bbmusic/engine/src/audio/qsa_sink.cpp` | Q10 gate 0.4, 2026-11-14 |
-| Show now-playing and media buttons | The volume overlay, through a PPS object the engine writes | `bbmusic/engine/src/platform/now_playing.cpp` | Q10 gate 0.5, 2026-11-14 |
-| Ring on an incoming call | mm-renderer plays the phone's tone (no audio buffers in your process) | `hyperberry/docs/plan/phase7.md` "Ringing" | Q10 0.0.1.185 to .186; Tengram Q10 0.1.0.40-44 |
-| Move a voice note to the earpiece | `AUDIO_TYPE_VOICE` handle routed to `AUDIO_DEVICE_HANDSET` + the proximity sensor | `hyperberry/app/src/Proximity.cpp`, `VoicePlayer.qml` | builds (0.0.1.181); no phone report found |
+| Play a video file full screen | `MediaPlayer` (`bb.multimedia`) into a `ForeignWindowControl`; the file is a local `file://` path | [VideoViewer.qml](../samples/video/VideoViewer.qml) (Tengram's; HyperBerry's is the one it was forked from), Phoenix's `VideoPage.qml` | Q10 2026-11-12 (stories gate, HyperBerry's stories notes); Classic 1.0.0.90 for length and refused seek (`tengram` commit `74bb400`); Phoenix: builds |
+| Play a video from a URL | Download to a file first, then play the file. Phoenix's engine fetches, merges and remuxes it | [video.cpp](../samples/video/remux/video.cpp), [samples/video/remux/](../samples/video/remux/) | builds |
+| Show video inside my own page | The same control; the system player creates the window | HyperBerry's `StoryViewer.qml` | Q10 2026-11-12 |
+| Decode H.264 frames I receive from the network | OpenMAX **IL**, `OMX.qcom.video.decoder.avc`, `dlopen`ed, in the UI process | [VideoDecoder.*](../samples/video/VideoDecoder.cpp), `VideoFormat.cpp`, `VideoOutput.cpp`, `VideoWindow.*` | Q10 0.0.1.190 2026-11-07, up to 4 at once 0.0.1.259 2026-11-11; Classic 2026-11-19 (Tengram) |
+| Encode the camera to H.264 | The camera API's own hardware encoder, `camera_start_encode` (`-lcamapi`, `use_camera`) | [CameraEncoder.*](../samples/video/CameraEncoder.cpp) | Q10 0.0.1.193 2026-11-07; Classic 0.1.0.49 and .50 2026-11-19 |
+| Play PCM | `libasound` plugin API opened through `audio_manager` (`-lasound -laudio_manager`) | [CallAudio.cpp](../samples/audio/CallAudio.cpp), [qsa_sink.cpp](../samples/audio/qsa_sink.cpp) | Q10 2026-11-07 (calls), 2026-11-14 (music) |
+| Play Opus audio | There is no Opus on BB10: decode with static libopus yourself, then PCM (music) or a WAV for `MediaPlayer` (voice notes) | [samples/audio/](../samples/audio/), HyperBerry's phase0 notes 0.8 | Q10 2026-10-29, 2026-11-14 |
+| Record the microphone | Notes: `AudioRecorder` (48 kHz stereo WAV). Calls: `libasound` capture | [Recorder.qml](../samples/audio/Recorder.qml), `CallAudio.cpp` | Q10 2026-10-29; calls Q10 0.0.1.187 |
+| Keep audio playing with the app closed | The headless engine opens the speaker itself | [qsa_sink.cpp](../samples/audio/qsa_sink.cpp) | Q10 gate 0.4, 2026-11-14 |
+| Show now-playing and media buttons | The volume overlay, through a PPS object the engine writes | [now_playing.cpp](../samples/audio/now_playing.cpp) | Q10 gate 0.5, 2026-11-14 |
+| Ring on an incoming call | mm-renderer plays the phone's tone (no audio buffers in your process) | HyperBerry's phase7 notes "Ringing" | Q10 0.0.1.185 to .186; Tengram Q10 0.1.0.40-44 |
+| Move a voice note to the earpiece | `AUDIO_TYPE_VOICE` handle routed to `AUDIO_DEVICE_HANDSET` + the proximity sensor | [Proximity.cpp](../samples/audio/Proximity.cpp), `VoicePlayer.qml` | builds (0.0.1.181); no phone report found |
 
 ## 2. Playing a video file or stream (the "video player")
 
@@ -34,7 +34,7 @@ No app uses the system player as its viewer, and none decodes a file with OpenMA
 | Phoenix | `VideoPage.qml` | the engine resolves, downloads and remuxes (below) |
 | BBMusic | no video | Opus decoded by the engine, no `MediaPlayer` |
 
-The core of all three (`tengram/app/assets/VideoViewer.qml`):
+The core of all three ([VideoViewer.qml](../samples/video/VideoViewer.qml)):
 
 ```qml
 MediaPlayer {
@@ -55,35 +55,35 @@ ForeignWindowControl {
 }
 ```
 
-`start()` is called after the page is pushed, not on the control's bind: "the player creates the window when it prepares, and the control binds to it after, so waiting for the bind would never start anything" (same file). Set `player.sourceUrl = "file://" + path` and call `play()`. The window mm-renderer makes sits under Cascades' hole, so Cascades controls draw over it and a tap on a button over it reaches Cascades; the first play took 1.3 s to prepare and a replay 0.12 s, so the next story's file is fetched ahead (Q10, 2026-11-12: `hyperberry/docs/plan/stories.md`). An H.264/AAC MP4 played to the end with sound there.
+`start()` is called after the page is pushed, not on the control's bind: "the player creates the window when it prepares, and the control binds to it after, so waiting for the bind would never start anything" (same file). Set `player.sourceUrl = "file://" + path` and call `play()`. The window mm-renderer makes sits under Cascades' hole, so Cascades controls draw over it and a tap on a button over it reaches Cascades; the first play took 1.3 s to prepare and a replay 0.12 s, so the next story's file is fetched ahead (Q10, 2026-11-12: HyperBerry's stories notes). An H.264/AAC MP4 played to the end with sound there.
 
 ### Limits found
 
 | Limit | Fact | Source |
 |---|---|---|
-| Picture shape | "mm-renderer stretches the picture to the window", and a message's width and height can be wrong (a TikTok clip came out square, 2026-11-17). Size the control from `onVideoDimensionsChanged` (`ratio = height / width`) and fit it to the screen | `hyperberry/app/assets/VideoViewer.qml`, commit `0345caf` |
-| Fragmented MP4 | moof boxes; `mvhd`, `tkhd` and `mdhd` say 0 and the length is only in `mvex`'s `mehd`. mm-renderer reports "Track duration 0" and refuses every seek (`UnsupportedOperation`). A 3:44 video showed 0:00 / 0:00 and a touch on the timeline restarted it | `tengram` commit `74bb400`, `tengram/app/src/Mp4Length.h` |
+| Picture shape | "mm-renderer stretches the picture to the window", and a message's width and height can be wrong (a TikTok clip came out square, 2026-11-17). Size the control from `onVideoDimensionsChanged` (`ratio = height / width`) and fit it to the screen | [VideoViewer.qml](../samples/video/VideoViewer.qml), commit `0345caf` |
+| Fragmented MP4 | moof boxes; `mvhd`, `tkhd` and `mdhd` say 0 and the length is only in `mvex`'s `mehd`. mm-renderer reports "Track duration 0" and refuses every seek (`UnsupportedOperation`). A 3:44 video showed 0:00 / 0:00 and a touch on the timeline restarted it | `tengram` commit `74bb400`, [Mp4Length.h](../samples/video/Mp4Length.h) |
 | What Tengram does about it | reads the length from the file (`Mp4Length`: `mvhd`, else `mehd`); the player's position still moves, so the time reads 0:02 / 3:44. For a fragmented file the timeline is hidden and an "Open in player" button hands the file to the system (`bb.action.OPEN`). A seek the player refuses is not taken for a file that cannot play. A file whose length the player does not know takes no seek | same |
-| Evidence | the length and the refused seek were seen on the Classic, 1.0.0.90 (`ui.log`); the hidden timeline and the button were "not built" when that commit was written and "untried on a phone" in `tengram/docs/HANDOFF.md` | same |
-| Remote URL | "mmrenderer only opens complete local files"; [bbtube](https://github.com/BBerryLife/bbtube)'s audio-only mode plays a remote URL but with seek disabled; its video path stitches MP4s on disk | `bbmusic/PLAN.md` section 2 |
+| Evidence | the length and the refused seek were seen on the Classic, 1.0.0.90 (`ui.log`); the hidden timeline and the button were "not built" when that commit was written and "untried on a phone" in Tengram's HANDOFF notes | same |
+| Remote URL | "mmrenderer only opens complete local files"; [bbtube](https://github.com/BBerryLife/bbtube)'s audio-only mode plays a remote URL but with seek disabled; its video path stitches MP4s on disk | BBMusic's plan notes section 2 |
 | Failure | on a player error both viewers call `opener.openFile(path)`, the system's app gets the file (`fail()`) | `VideoViewer.qml` |
-| Loop and mute | a GIF: `repeatMode: RepeatMode.Track`, `volume: 0` in Phoenix | `phoenix/app/assets/VideoPage.qml` |
+| Loop and mute | a GIF: `repeatMode: RepeatMode.Track`, `volume: 0` in Phoenix | `VideoPage.qml` |
 | Audio focus | not stated in any source read | |
 
 ### What Phoenix's engine does to MP4 and DASH before the UI plays it
 
-Reddit serves DASH: separate single-file video and audio renditions. mm-renderer takes one source and cannot seek a fragmented file, so the engine (`phoenix/engine/src/media/video.cpp`) does, on one worker, one video at a time (a new `media` cancels the old):
+Reddit serves DASH: separate single-file video and audio renditions. mm-renderer takes one source and cannot seek a fragmented file, so the engine ([video.cpp](../samples/video/remux/video.cpp)) does, on one worker, one video at a time (a new `media` cancels the old):
 
 1. `mpd.cpp` reads the DASH manifest with a hand-written tag scanner. `pick_video` takes the rendition whose shorter side is the greatest not above `max_height` (default 480, setting "Video quality"), only codecs starting `avc1` ("the phone decodes H.264 only"); `pick_audio` takes the best audio at most 128000 bit/s, `mp4a` only.
 2. It downloads the pieces into the cache (cap 300 MB per video, `kMaxVideoBytes`).
 3. `remux.cpp` writes one progressive MP4 (ftyp, moov, mdat) by stream copy, no decoding, merging video and audio. Choices copied from bbtube's remuxer "which plays there": `ftyp` major `isom` (a copied `dash` major made mm-renderer reject the file), `ctts` version 0, movie timescale 1000, half-second chunks alternating between tracks, no `mvex`. It reports width, height, duration and whether there is audio. Result "not fragmented" means the file is played as it is.
-4. The UI gets `media` events (`progress`, `ready` with `file`, `w`, `h`, `duration_s`, `audio`) and plays the file with a timeline (`phoenix/docs/protocol.md`, `media` command).
+4. The UI gets `media` events (`progress`, `ready` with `file`, `w`, `h`, `duration_s`, `audio`) and plays the file with a timeline (Phoenix's protocol notes, `media` command).
 
 Evidence for Phoenix: the code and unit tests build; the only phone fact in the sources is the action-bar measurement on a Q10 screenshot (`VideoPage.qml`, 0.1.0.24, 2026-11-21). No source reports a video played on a phone.
 
 ## 3. The OpenMAX research (HyperBerry, 2026-11-07)
 
-The user's rule: video calls only if the Q10 decodes H.264 in hardware; software decoding on a Krait is not an option. The question was whether received H.264 access units can be decoded from memory, one frame at a time (`hyperberry/docs/plan/phase7.md`, "Video calls: the hardware-decode gate").
+The user's rule: video calls only if the Q10 decodes H.264 in hardware; software decoding on a Krait is not an option. The question was whether received H.264 access units can be decoded from memory, one frame at a time (HyperBerry's phase7 notes, "Video calls: the hardware-decode gate").
 
 ### Which API is which
 
@@ -93,7 +93,7 @@ The user's rule: video calls only if the Q10 decodes H.264 in hardware; software
 | OpenMAX **IL** | Qualcomm's core on the phone, `/base/lib/libOmxCore.so`, standard IL entry points, undocumented on BB10 | **works**, one access unit per buffer |
 | mm-renderer | the system's player service (`MediaPlayer` sits on it) | plays finished files only |
 
-### Round 1: OpenMAX AL from memory (`hyperberry/tools/h264gate/h264gate.c`)
+### Round 1: OpenMAX AL from memory ([h264gate.c](../samples/video/h264gate/h264gate.c))
 
 Test streams: 320x240@15 and 640x480@30, baseline, `ffmpeg testsrc`, run as root on the Q10. **No frame decoded.**
 
@@ -119,7 +119,7 @@ XADataLocator_URI lu = {XA_DATALOCATOR_URI, (XAchar *)uri};
 XADataFormat_MIME fm = {XA_DATAFORMAT_MIME, (XAchar *)"video/x-matroska", XA_CONTAINERTYPE_UNSPECIFIED};
 XADataLocator_QNXScreenBufferQueue ls = {XAQ_DATALOCATOR_SCREENBUFFERQUEUE, NULL, NULL};
 ```
-(`hyperberry/tools/h264gate/h264uri.c`)
+([h264uri.c](../samples/video/h264gate/h264uri.c))
 
 - **A finished Matroska file works, in hardware.** Sink `XAQ_DATALOCATOR_SCREENBUFFERQUEUE` with `XA_IID_QNXVIDEOBUFFERQUEUESINK`: each frame a Screen buffer (format 65548) with its timestamp. Realize 250-500 ms, first frame 100-115 ms after Play. Decoding in the system's `videoCore`: about 2 ms a frame at 320x240, 3.5 ms at 640x480. The player holds back the file's last 16-32 KB until 32 KB of padding follow.
 - **Live is not possible with low latency:** a growing file stalls after the frames there at open (its size is read once); a FIFO blocks Realize; a local HTTP stream is walked to its end (Range requests) before Realize returns. One finished file per GOP with a fresh player each decoded everything at 320x240@15 with 1 s files, but 1-3 s behind, at about 25 % of a core in our process plus 15 % in `videoCore`; shorter files or 640x480 fell behind real time (a player's set-up outlasts its file).
@@ -148,20 +148,20 @@ Component `OMX.qcom.video.decoder.avc` (`libmmiVdec_asic_8960.so`, the MSM8960's
 
 ### Build and load
 
-- Headers: Khronos IL 1.1.2 as AOSP carries them, fetched at build time by `hyperberry/scripts/fetch-omxil.sh` into `lib/omxil/` (pinned to a commit, sha256-checked, not committed). `hyperberry/app/hyperberry.pro` adds `INCLUDEPATH += $$PWD/../lib/omxil`. **Nothing links**; the core is opened at run time:
+- Headers: Khronos IL 1.1.2 as AOSP carries them, fetched at build time by [fetch-omxil.sh](../samples/video/fetch-omxil.sh) into `lib/omxil/` (pinned to a commit, sha256-checked, not committed). `hyperberry.pro` adds `INCLUDEPATH += $$PWD/../lib/omxil`. **Nothing links**; the core is opened at run time:
 
 ```cpp
 static const char *ComponentName = "OMX.qcom.video.decoder.avc";
 // The system's core first, so a different working directory or library path can't shadow it.
 static const char *CorePath = "/base/lib/libOmxCore.so";
 ```
-(`hyperberry/app/src/VideoDecoder.cpp`) It `dlsym`s `OMX_Init`, `OMX_Deinit`, `OMX_GetHandle`, `OMX_FreeHandle` and keeps the library loaded for the process's life.
-- Tengram carries the same files (`tengram/app/src/VideoDecoder.cpp`, `tengram/app/tengram.pro`).
-- The sources name no extra bar permission for the decoder. The descriptor of both apps has `use_camera`, `record_audio`, `play_audio`, `run_when_backgrounded` (`hyperberry/app/bar-descriptor.xml`).
+([VideoDecoder.cpp](../samples/video/VideoDecoder.cpp)) It `dlsym`s `OMX_Init`, `OMX_Deinit`, `OMX_GetHandle`, `OMX_FreeHandle` and keeps the library loaded for the process's life.
+- Tengram carries the same files (`VideoDecoder.cpp`, `tengram.pro`).
+- The sources name no extra bar permission for the decoder. The descriptor of both apps has `use_camera`, `record_audio`, `play_audio`, `run_when_backgrounded` (`bar-descriptor.xml`).
 
 ### Which process
 
-The UI process, never the headless engine. Decoding, encoding and drawing are in the UI; the engine carries compressed frames "a few KB each" (`hyperberry/docs/plan/phase7c.md`, Notes). Reasons in the sources: the screen and camera belong to the UI, and the engine runs under a memory cap (`hyperberry/docs/plan/phase7.md`, "The user's calls"). Frames travel on a third loopback connection (`CallVideo.h`, `hyperberry/docs/protocol2.md`). Tengram says the same: "the phone's H.264 is hardware and lives in the UI process" (`tengram/NOTES.md`, Video calls).
+The UI process, never the headless engine. Decoding, encoding and drawing are in the UI; the engine carries compressed frames "a few KB each" (HyperBerry's phase7c notes, Notes). Reasons in the sources: the screen and camera belong to the UI, and the engine runs under a memory cap (HyperBerry's phase7 notes, "The user's calls"). Frames travel on a third loopback connection (`CallVideo.h`, HyperBerry's protocol2 notes). Tengram says the same: "the phone's H.264 is hardware and lives in the UI process" (Tengram's notes, Video calls).
 
 ### Sequence (as `VideoDecoder::setUp` does it)
 
@@ -198,7 +198,7 @@ if (!waitOutputReturned(1000))
 for (int i = 0; i < m_outHeaders.size(); i++)
     OMX_FreeBuffer(m_handle, m_outPort, m_outHeaders[i]);
 ```
-(`hyperberry/app/src/VideoOutput.cpp`) Then wait for the disable (2 s), re-read the port, `PortEnable`, allocate again, wait for the enable (2 s), `FillThisBuffer` all. Why the buffers must come back first: a peer's stream went 320x180 then 320x212; the second reconfiguration freed buffers the decoder still held, the port never disabled (`output port not disabled in 2 s`, `OMX_ErrorIncorrectStateOperation`), the engine had 149 frames and the decoder gave 3 (Q10, 0.0.1.202, 2026-11-08). Fixed in 0.0.1.203: 65 in, 65 out. A reconfiguration that still fails sets `broken()`; `CallVideo` closes and reopens the decoder and asks the engine for a keyframe. The reconfiguration itself costs about 50 ms in calls (Android switching 320x212, 480x320, 640x424 every 6-12 s, nothing refused: `phase7c.md`, 0.0.1.210) and 270 ms when the declared size was wrong.
+([VideoOutput.cpp](../samples/video/VideoOutput.cpp)) Then wait for the disable (2 s), re-read the port, `PortEnable`, allocate again, wait for the enable (2 s), `FillThisBuffer` all. Why the buffers must come back first: a peer's stream went 320x180 then 320x212; the second reconfiguration freed buffers the decoder still held, the port never disabled (`output port not disabled in 2 s`, `OMX_ErrorIncorrectStateOperation`), the engine had 149 frames and the decoder gave 3 (Q10, 0.0.1.202, 2026-11-08). Fixed in 0.0.1.203: 65 in, 65 out. A reconfiguration that still fails sets `broken()`; `CallVideo` closes and reopens the decoder and asks the engine for a keyframe. The reconfiguration itself costs about 50 ms in calls (Android switching 320x212, 480x320, 640x424 every 6-12 s, nothing refused: `phase7c.md`, 0.0.1.210) and 270 ms when the declared size was wrong.
 
 ### Threads and callbacks
 
@@ -221,15 +221,15 @@ Order in `close()`: stop the output thread, `SendCommand(Idle)` and wait 3 s, `S
 | 4 decoders at once, each 640x480@30 into its own window | every one 300/300, 30.0 fps, first frame 32-41 ms, latency 16-26 ms mean (max 64), de-tile about 1 ms, process about 40 % of one core | 0.0.1.259, 2026-11-11 (test removed 2026-11-12; in git at `6401d93`) |
 | Android's High profile (CABAC) and sizes 320x176, 480x240, 640x352, 640x360 by reconfiguration | accepted, about 55-65 ms decode latency, UI process 7-14 % of a core with camera and decoder running | Classic, Tengram 0.1.0.49, 2026-11-19 |
 
-Profiles: baseline was what the gate tested. Tengram offered constrained baseline only, and the Android peer sent **High with CABAC**; the decoder takes it (`tengram/NOTES.md`, Gate V1 and V2). Other profiles are not listed in any source.
+Profiles: baseline was what the gate tested. Tengram offered constrained baseline only, and the Android peer sent **High with CABAC**; the decoder takes it (Tengram's notes, Gate V1 and V2). Other profiles are not listed in any source.
 
 ### How many at once
 
-Four, measured (row above); the group-video grid is limited to 4 tiles by that test (`hyperberry/docs/plan/phase7e.md`, V0). The code has one `VideoDecoder` and one `VideoWindow` per tile (`CallVideo.h`, `Tiles = 4`). A comment in `VideoDecoder.cpp` still says "the core stays loaded for the life of the process (no dlclose); one decoder at a time", written at 0.0.1.190; phase 7e's V0 (0.0.1.259) is newer and shows four. The newer one wins.
+Four, measured (row above); the group-video grid is limited to 4 tiles by that test (HyperBerry's phase7e notes, V0). The code has one `VideoDecoder` and one `VideoWindow` per tile (`CallVideo.h`, `Tiles = 4`). A comment in `VideoDecoder.cpp` still says "the core stays loaded for the life of the process (no dlclose); one decoder at a time", written at 0.0.1.190; phase 7e's V0 (0.0.1.259) is newer and shows four. The newer one wins.
 
 ## 5. Drawing decoded frames
 
-`VideoWindow` (`hyperberry/app/src/VideoWindow.cpp`) implements `VideoDecoder::Sink`. It de-tiles each frame straight into the window's buffer, on the decoder's output thread, then posts.
+`VideoWindow` ([VideoWindow.cpp](../samples/video/VideoWindow.cpp)) implements `VideoDecoder::Sink`. It de-tiles each frame straight into the window's buffer, on the decoder's output thread, then posts.
 
 ```cpp
 if (screen_set_window_property_cv(m_win, SCREEN_PROPERTY_ID_STRING, id.size() + 1, id.constData())
@@ -253,13 +253,13 @@ if (screen_post_window(m_win, buf, 1, dirty, 0)) {
 | Size change | `screen_destroy_window_buffers`, set `BUFFER_SIZE` and `SOURCE_SIZE`, `screen_create_window_buffers(2)` | the window follows the (turned) frame size |
 | Crop to the control | Screen's source viewport (`SOURCE_POSITION`, `SOURCE_SIZE`) set by `centreCrop` | a bigger control than its parent is squeezed by Cascades (0.0.1.204: the picture was squeezed); the control fills the frame and the viewport shows the centred part |
 
-Rotation: `setRotation(quarterTurns)` clockwise, from the next frame; `Nv12Rotate.h` (Qt-free, tested on the Mac by `hyperberry/app/tests/rotate_test.cpp`) turns linear NV12 into the buffer, reading the destination in order because "the window's buffer is write-only to the CPU and a scattered write is the slow one". The tiles do not survive a turn, so the frame is de-tiled to a scratch buffer first. WhatsApp's quarter turns are anticlockwise: `CallVideo` uses `(4 - o) & 3` (Q10, 0.0.1.207: "the picture orientation is right"). Telegram's are clockwise: no reversal (`tengram/NOTES.md`, Gate V2). The RGB fallback draws unturned.
+Rotation: `setRotation(quarterTurns)` clockwise, from the next frame; `Nv12Rotate.h` (Qt-free, tested on the Mac by `rotate_test.cpp`) turns linear NV12 into the buffer, reading the destination in order because "the window's buffer is write-only to the CPU and a scattered write is the slow one". The tiles do not survive a turn, so the frame is de-tiled to a scratch buffer first. WhatsApp's quarter turns are anticlockwise: `CallVideo` uses `(4 - o) & 3` (Q10, 0.0.1.207: "the picture orientation is right"). Telegram's are clockwise: no reversal (Tengram's notes, Gate V2). The RGB fallback draws unturned.
 
 The first picture did not show for several builds. Causes found, in order: the page's own black background sat over the hole (0.0.1.190); the window was not adopted because the id was set after the group join, and its posts did not refresh it (0.0.1.191, 192). Fixed in 0.0.1.192 (Q10: "the test pattern plays, in NV12 and in RGB").
 
 ### Native-window traps (ForeignWindowControl and Screen windows)
 
-From `base-bb10/skills/bb10-pitfalls/SKILL.md` unless noted; all [Q10].
+From [skills/bb10-pitfalls/SKILL.md](../skills/bb10-pitfalls/SKILL.md) unless noted; all [Q10].
 
 - Binding needs `SCREEN_CHILD_WINDOW`, `screen_join_window_group(main group id)` after the control exists, `SCREEN_PROPERTY_ID_STRING` = the control's `windowId`.
 - The SDK says put it at a negative z-order under Cascades' hole. At z -1 the page shows but gets **no touches** (Cascades forwards only keys). Above Cascades it takes touches, and then **nothing Cascades draws can appear over it**: no SystemToast, action menu, text magnifier or overlay. Older text in `bb10-cascades/SKILL.md` ("draws above all Cascades content and takes touches") describes the second case only; the pitfalls skill is newer and wins.
@@ -272,7 +272,7 @@ From `base-bb10/skills/bb10-pitfalls/SKILL.md` unless noted; all [Q10].
 
 ## 6. The hardware encoder
 
-`CameraEncoder` (`hyperberry/app/src/CameraEncoder.cpp`) uses the **camera API's own H.264 encoder**, not OpenMAX: `camera_start_encode()` hands compressed frames to a callback. Link `-lcamapi`, permission `use_camera` (`EACCESS (is use_camera granted?)` is the error text for a missing one).
+`CameraEncoder` ([CameraEncoder.cpp](../samples/video/CameraEncoder.cpp)) uses the **camera API's own H.264 encoder**, not OpenMAX: `camera_start_encode()` hands compressed frames to a callback. Link `-lcamapi`, permission `use_camera` (`EACCESS (is use_camera granted?)` is the error text for a missing one).
 
 ```cpp
 camera_set_video_property(m_handle,
@@ -317,13 +317,13 @@ Traps: the camera library creates the viewfinder window itself (above Cascades, 
 
 ### PCM through libasound and audio_manager
 
-Link `-lasound -laudio_manager`, headers `<audio/audio_manager_routing.h>`, `<sys/asoundlib.h>` (`hyperberry/app/hyperberry.pro`, `CallAudio.cpp`). Both apps open the device the same way:
+Link `-lasound -laudio_manager`, headers `<audio/audio_manager_routing.h>`, `<sys/asoundlib.h>` (`hyperberry.pro`, `CallAudio.cpp`). Both apps open the device the same way:
 
 ```cpp
 rc = audio_manager_snd_pcm_open_name(CallAudioType, &h, &am, names[i],
                                      capture ? SND_PCM_OPEN_CAPTURE : SND_PCM_OPEN_PLAYBACK);
 ```
-(`hyperberry/app/src/CallAudio.cpp`; BBMusic: `AUDIO_TYPE_MULTIMEDIA`, name `pcmPreferred`, `bbmusic/engine/src/audio/qsa_sink.cpp`)
+([CallAudio.cpp](../samples/audio/CallAudio.cpp); BBMusic: `AUDIO_TYPE_MULTIMEDIA`, name `pcmPreferred`, [qsa_sink.cpp](../samples/audio/qsa_sink.cpp))
 
 | | HyperBerry / Tengram call (UI process) | BBMusic music (engine) |
 |---|---|---|
@@ -336,14 +336,14 @@ rc = audio_manager_snd_pcm_open_name(CallAudioType, &h, &am, names[i],
 
 Calls, lessons: the first real call gave 1024-byte fragments, not the 1920 asked; playback ran dry about once a second and the microphone gave short reads (512, once -22). 0.0.1.187 reads and writes one granted fragment at a time, gathers the microphone into 60 ms frames keeping short reads, starts playback with two frames in (120 ms, again after running dry without dropping what hasn't played), drops the oldest beyond four frames "so the delay can't grow", queues up to 8 fragments. A PCM failing 50 reads or writes in a row is given up on. **Calls and audio work on the Q10** (0.0.1.187, 2026-11-07, user); no audible echo on the speaker with `AUDIO_TYPE_VOICE`, so `AUDIO_TYPE_VIDEO_CHAT` (the fallback named in the code) was not needed. Tengram: with all WebRTC echo, noise and gain processing off "BB10's voice path does the echo" (Q10, 0.1.0.39, 2026-11-19, user).
 
-Music, lessons (`bbmusic/docs/plan/phase0.md` 0.4): ten minutes of 48 kHz Opus: **0 underruns, 5.8 % of a core** for the whole process, the decoder alone 78x real time (10x while playing; the phone clocks the CPU down between packets). As the headless app 157 s with 0 underruns at 5.6 % of a core, through the app being swiped away (Q10, 2026-11-14, user). **Integer-math lesson:** scaling samples with `std::lrint` cost 18.6 % of a core for the same playback; an integer multiply and shift cost 5.7 %. "No libm call and no allocation per audio sample" (`bbmusic/docs/plan/phase1.md`). The shipped equalizer (`equalizer.cpp`) still computes biquads in `float` per sample and clamps with `std::lrintf`; its cost was not measured in the sources read.
+Music, lessons (BBMusic's phase0 notes 0.4): ten minutes of 48 kHz Opus: **0 underruns, 5.8 % of a core** for the whole process, the decoder alone 78x real time (10x while playing; the phone clocks the CPU down between packets). As the headless app 157 s with 0 underruns at 5.6 % of a core, through the app being swiped away (Q10, 2026-11-14, user). **Integer-math lesson:** scaling samples with `std::lrint` cost 18.6 % of a core for the same playback; an integer multiply and shift cost 5.7 %. "No libm call and no allocation per audio sample" (BBMusic's phase1 notes). The shipped equalizer (`equalizer.cpp`) still computes biquads in `float` per sample and clamps with `std::lrintf`; its cost was not measured in the sources read.
 
-Routing in the engine (`QsaSink`): a stream stays on the output it was opened on (Q10, 2026-11-14: headphones took effect only after a stop and start), so `check_route` reads `audio_manager_get_default_device()` every half second of written audio; a change to the speaker from headset, headphone or A2DP is "unplugged" (stop and report), any other change closes and reopens the PCM and plays on. Headphones pass (Q10, 2026-11-14). **Bluetooth:** `pcmPreferredp` stays on the codec card; A2DP is its own card behind `a2dpp`; the sink opens it when the default device is A2DP. Verified on the Q20 (2026-11-15, 0.1.0.43): "speaker: a2dpp (a2dp)" on a play, a mid-song reopen, Bluetooth off pauses at 9153 ms and play went on on the speaker; user: "it yes it works". `bbmusic/docs/plan/status.md` (2026-11-14) still lists Bluetooth as untested; the commit is newer and wins. A phone call during music: untested.
+Routing in the engine (`QsaSink`): a stream stays on the output it was opened on (Q10, 2026-11-14: headphones took effect only after a stop and start), so `check_route` reads `audio_manager_get_default_device()` every half second of written audio; a change to the speaker from headset, headphone or A2DP is "unplugged" (stop and report), any other change closes and reopens the PCM and plays on. Headphones pass (Q10, 2026-11-14). **Bluetooth:** `pcmPreferredp` stays on the codec card; A2DP is its own card behind `a2dpp`; the sink opens it when the default device is A2DP. Verified on the Q20 (2026-11-15, 0.1.0.43): "speaker: a2dpp (a2dp)" on a play, a mid-song reopen, Bluetooth off pauses at 9153 ms and play went on on the speaker; user: "it yes it works". BBMusic's status notes (2026-11-14) still lists Bluetooth as untested; the commit is newer and wins. A phone call during music: untested.
 
 ### Earpiece, speaker, proximity
 
 - `CallAudio::setSpeaker` re-routes both handles under a mutex. Default is the handset (earpiece).
-- `Proximity` (`hyperberry/app/src/Proximity.cpp`): BPS sensor domain, `sensor_request_events(SENSOR_TYPE_PROXIMITY)`, `near` when the reading is below 0.5 (0.0 close, 1.0 far). `acquire(holder)` / `release(holder)` count holders; a holder destroyed while it holds is released by itself (Cascades QML has no `Component.onDestruction`). While held it sets `ScreenIdleMode::KeepAwake`: "an idle lock during a call would minimise the app and drop the audio". The call sheet covers itself in black at the ear unless on the speaker.
+- `Proximity` ([Proximity.cpp](../samples/audio/Proximity.cpp)): BPS sensor domain, `sensor_request_events(SENSOR_TYPE_PROXIMITY)`, `near` when the reading is below 0.5 (0.0 close, 1.0 far). `acquire(holder)` / `release(holder)` count holders; a holder destroyed while it holds is released by itself (Cascades QML has no `Component.onDestruction`). While held it sets `ScreenIdleMode::KeepAwake`: "an idle lock during a call would minimise the app and drop the audio". The call sheet covers itself in black at the ear unless on the speaker.
 - A voice note at the ear: `MediaPlayer.audioManagerHandle` set to `proximity.earHandle()` (an `AUDIO_TYPE_VOICE` handle routed to `AUDIO_DEVICE_HANDSET`) and back to 0; `settings.earSensor` turns it off "for a sensor that misreads". Older `ui.md` says "the speaker only, no earpiece" for notes; phase 7.5 (2026-11-07) supersedes it. Phone result for 7.5: the first build crashed the chat page (`Component.onDestruction`), fixed in 0.0.1.181; no later report found.
 - Bluetooth headsets for calls: not in the sources.
 
@@ -353,7 +353,7 @@ Routing in the engine (`QsaSink`): a stream stays on the output it was opened on
 |---|---|---|
 | Voice-note recording | `AudioRecorder` in `Recorder.qml` | writes a **48 kHz stereo 16-bit PCM WAV**, no rate or format to set (Q10, 2026-10-29). Tap to start, tap to send; under 1 s is dropped; the screen stays awake while recording (Q10, 0.0.1.94) |
 | Encode | the Go engine, libopus 1.6.1 static, `--disable-rtcd` + `-mfpu=neon` (QNX has no runtime CPU detection) | 20 kbit/s mono, complexity 5; encode 0.117 of real time (764 ms for 6.5 s), decode 79 ms for 6.5 s (Q10, 2026-10-29); encoding runs while recording |
-| Play a note | engine decodes Ogg Opus to `data/cache/voice/<id>.wav` on first play; `MediaPlayer` plays it | a voice note decoded whole once took 31 MB and ran the capped engine out of memory (`hyperberry/docs/plan/pitfalls.md`); decode in pieces |
+| Play a note | engine decodes Ogg Opus to `data/cache/voice/<id>.wav` on first play; `MediaPlayer` plays it | a voice note decoded whole once took 31 MB and ran the capped engine out of memory (HyperBerry's pitfalls notes); decode in pieces |
 | Call codec | MLOW in meowcaller (Go) in the engine | encode 1.23-1.30 of real time as published, **0.415** after caching the FFT twiddles (`engine/meowcaller.patch`), decode 0.02 (Q10, 2026-11-07). `math.Cos`/`math.Sin` per call were the cost: float64 to uint64 is a software routine on 32-bit ARM. Same lesson as BBMusic's `lrint` |
 | Tengram calls | tgcalls, Opus 48 kHz, 60 ms packets | about 25 % of one core for the whole phone during a call; libopus built `--enable-fixed-point` (Q10, 2026-11-19) |
 | Ringtone | engine, mm-renderer (`libmmrndclient`, `libstrm`), audio type `ringtone` | the phone's tone from `cat.phone` in PPS; mm-renderer's `repeat` did not loop, so the engine restarts it; rings only when `/pps/services/notify/status` says `sound::on` (Q10, 0.0.1.185-186). The system's own ringing needs `use_notify_system`, granted to `sys.*` apps only |
@@ -362,8 +362,8 @@ Routing in the engine (`QsaSink`): a stream stays on the output it was opened on
 
 | App | Where | Why (source) |
 |---|---|---|
-| HyperBerry, Tengram calls | UI process; the engine keeps codec and signalling; PCM crosses a second loopback connection | "the engine runs headless under a memory cap (`SetMemoryLimit(24 MB)`; four out-of-memory crashes came from single 9 MB allocations), so the microphone, the speaker and their buffers belong to the UI process, which has no such cap" (`hyperberry/docs/plan/phase7.md`). A link that closes during a call, with no new one within 3 s, hangs the call up: the UI was closed and nothing can play or record |
-| BBMusic | the headless engine opens the speaker | gate 0.4 passed: a headless entry point may open the speaker and outlives the UI. The decoder is small and the engine's size is 4.2 MB (`status.md`), so the cap does not bite. If 0.4 had failed the plan was the HyperBerry arrangement and "music stops when the app is closed" (`bbmusic/PLAN.md` 9) |
+| HyperBerry, Tengram calls | UI process; the engine keeps codec and signalling; PCM crosses a second loopback connection | "the engine runs headless under a memory cap (`SetMemoryLimit(24 MB)`; four out-of-memory crashes came from single 9 MB allocations), so the microphone, the speaker and their buffers belong to the UI process, which has no such cap" (HyperBerry's phase7 notes). A link that closes during a call, with no new one within 3 s, hangs the call up: the UI was closed and nothing can play or record |
+| BBMusic | the headless engine opens the speaker | gate 0.4 passed: a headless entry point may open the speaker and outlives the UI. The decoder is small and the engine's size is 4.2 MB (`status.md`), so the cap does not bite. If 0.4 had failed the plan was the HyperBerry arrangement and "music stops when the app is closed" (BBMusic's plan notes 9) |
 
 The first is for **calls**, which need the UI's camera and screen anyway and are allowed to end with the UI; the second is for **music**, which must survive it. Memory cap and addon: [09-headless-service.md](09-headless-service.md).
 
@@ -389,10 +389,10 @@ msg::state
 id::4
 dat::playing          (also paused, stopped; a JSON object here is refused)
 ```
-(`bbmusic/docs/plan/phase0.md`, 0.5) In: `msg::track` with `dat::sendData` (the overlay opened: resend metadata), `pause`, `play`, `prev`, `next`, `holdData` (closed); `msg::revoke` when another player acquired. `audio` is required and undocumented. The glyph follows the `state` the player writes, so send `state` on **every** change (a gate app that did not saw the buttons out of step).
-- Cover: `albumArtwork` is a `file://` path. The overlay service (uid 393, group `1000_shared`) cannot read the app's sandbox, so the engine copies the cover to `/accounts/1000/shared/misc/.bbmusic/` and the descriptor needs `access_shared` (`bbmusic/docs/plan/ui.md`, 0.1.0.34).
+(BBMusic's phase0 notes, 0.5) In: `msg::track` with `dat::sendData` (the overlay opened: resend metadata), `pause`, `play`, `prev`, `next`, `holdData` (closed); `msg::revoke` when another player acquired. `audio` is required and undocumented. The glyph follows the `state` the player writes, so send `state` on **every** change (a gate app that did not saw the buttons out of step).
+- Cover: `albumArtwork` is a `file://` path. The overlay service (uid 393, group `1000_shared`) cannot read the app's sandbox, so the engine copies the cover to `/accounts/1000/shared/misc/.bbmusic/` and the descriptor needs `access_shared` (BBMusic's ui notes, 0.1.0.34).
 - The overlay showed the cover and artist line but never the title; since 0.1.0.36 the artist line is "Title – Artist" on speaker and headphones and plain fields over Bluetooth, where the same metadata reaches a car (AVRCP). Position is resent every second for the car. Untried in a car.
-- The headset button with the app closed: untried; `audio_manager_add_device_button_change_event()` is a C candidate (`bbmusic/docs/plan/phase0.md`).
+- The headset button with the app closed: untried; `audio_manager_add_device_button_change_event()` is a C candidate (BBMusic's phase0 notes).
 - `MediaKeyWatcher` (`bb::multimedia`, `-lbbmultimedia`) "misses the mute/play key on some devices" (`bb10-pitfalls` skill); none of the four apps uses it.
 
 ## 9. Not proven / open
@@ -403,7 +403,7 @@ dat::playing          (also paused, stopped; a JSON object here is refused)
 | Camera encoder's own numbers (fps, bit rate, frame sizes, callback age) from a run | not recorded in `ui.log` (0.0.1.193); logs `call video:` every 10 s exist since |
 | A step down on a throttled link | "still to see" (Tengram note) |
 | Phoenix video on a phone | builds; no report found |
-| Hidden timeline and "Open in player" for fragmented MP4 | untried on a phone (`tengram/docs/HANDOFF.md`) |
+| Hidden timeline and "Open in player" for fragmented MP4 | untried on a phone (Tengram's HANDOFF notes) |
 | Audio focus with a video playing | not in the sources |
 | BBMusic: a phone call during playback, headset button with the app closed, the overlay on a car | untried |
 | Bluetooth headset for calls | not in the sources |
@@ -413,17 +413,15 @@ dat::playing          (also paused, stopped; a JSON object here is refused)
 
 ## Where sources disagree
 
-- `phase7c.md` says the camera sends 640x480@15, 400 kbit/s, IDR every 2 s; `hyperberry/app/src/CallVideo.cpp` (2026-11-20) has 30 fps, steps and IDR every 4 s. The code wins.
-- `tengram/docs/ui-fork.md` 3.3 says the video player classes "stay: received videos use it"; the viewer uses `MediaPlayer`, and `VideoDecoder` is used by `CallVideo` only (`tengram/app/src/`).
-- `bbmusic/docs/plan/status.md` lists Bluetooth untested; commit `5dc735d` (Q20, 2026-11-15) verified it.
+- HyperBerry's phase 7c notes say the camera sends 640x480@15, 400 kbit/s, IDR every 2 s; [CallVideo.cpp](../samples/video/CallVideo.cpp) (2026-11-20) has 30 fps, steps and IDR every 4 s. The code wins.
+- Tengram's ui-fork notes 3.3 says the video player classes "stay: received videos use it"; the viewer uses `MediaPlayer`, and `VideoDecoder` is used by `CallVideo` only (Tengram's `src/`).
+- BBMusic's status notes lists Bluetooth untested; commit `5dc735d` (Q20, 2026-11-15) verified it.
 
-## Sources
+## Samples
 
-- `hyperberry/docs/plan/phase7.md` (video gate, calls, audio link, ringing), `phase7b.md`, `phase7c.md`, `phase7e.md`, `phase0.md` (0.8), `phase4.md`, `stories.md`, `status.md`, `pitfalls.md`
-- `hyperberry/tools/h264gate/h264gate.c`, `h264uri.c`, `h264il.c`
-- `hyperberry/app/src/VideoDecoder.h`, `VideoDecoder.cpp`, `VideoOmx.h`, `VideoFormat.cpp`, `VideoOutput.cpp`, `VideoWindow.h`, `VideoWindow.cpp`, `Nv12Rotate.h`, `CameraEncoder.h`, `CameraEncoder.cpp`, `CallVideo.h`, `CallVideo.cpp`, `CallAudio.h`, `CallAudio.cpp`, `Proximity.h`, `Proximity.cpp`
-- `hyperberry/scripts/fetch-omxil.sh`, `hyperberry/app/hyperberry.pro`, `hyperberry/app/bar-descriptor.xml`, `hyperberry/app/assets/VideoViewer.qml`, `StoryViewer.qml`, `VoicePlayer.qml`, `Recorder.qml`, `CallVideoView.qml`
-- `base-bb10/skills/bb10-pitfalls/SKILL.md` ("ForeignWindowControl and Screen windows"), `bb10-cascades/SKILL.md` ("Native windows")
-- `tengram/NOTES.md` ("Calls", "Video calls"), `tengram/docs/ui-fork.md`, `tengram/docs/HANDOFF.md`, `tengram/app/assets/VideoViewer.qml`, `tengram/app/src/Mp4Length.h`, `tengram/app/src/CallVideo.cpp`; git commits `74bb400`, `f154d37`
-- `phoenix/app/assets/VideoPage.qml`, `phoenix/engine/src/mp4/`, `phoenix/engine/src/media/video.cpp`, `phoenix/docs/protocol.md`
-- `bbmusic/PLAN.md` (sections 2, 4.3, 4.4, "If the PCM path fails its gate"), `bbmusic/docs/plan/phase0.md` (0.4-0.6), `phase1.md`, `status.md`, `ui.md`, `bbmusic/engine/src/audio/qsa_sink.cpp`, `equalizer.cpp`, `bbmusic/engine/src/platform/now_playing.cpp`, `np_protocol.cpp`; git commit `5dc735d`
+- [samples/video/](../samples/video/): `VideoDecoder.*`, `VideoOmx.h`, `VideoFormat.cpp`, `VideoOutput.cpp`, `VideoWindow.*`, `Nv12Rotate.h`, `CameraEncoder.*`, `CallVideo.*`, `fetch-omxil.sh`, `VideoViewer.qml`, `Mp4Length.h`
+- [samples/video/h264gate/](../samples/video/h264gate/): the OpenMAX AL gate programs (`h264gate.c`, `h264uri.c`, `h264il.c`)
+- [samples/video/remux/](../samples/video/remux/): `mpd.*`, `remux.*`, `video.cpp` (Phoenix's fetch, merge and remux)
+- [samples/audio/](../samples/audio/): `CallAudio.*`, `Proximity.*`, `Recorder.qml`, `qsa_sink.*`, `now_playing.*`, `np_protocol.*`
+- [skills/bb10-pitfalls/SKILL.md](../skills/bb10-pitfalls/SKILL.md) ("ForeignWindowControl and Screen windows"), [skills/bb10-cascades/SKILL.md](../skills/bb10-cascades/SKILL.md) ("Native windows")
+- Git commits `74bb400`, `f154d37`, `5dc735d`

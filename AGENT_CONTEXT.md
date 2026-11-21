@@ -1,9 +1,9 @@
 # BlackBerry 10 app development: context for an agent
 
 Paste this file into an agent's prompt before it works on a BB10 app. It is the short form of this repo
-(`base-bb10`); each section names the doc with the detail and the sources. Everything here comes from four
+(`base-bb10`); each section names the doc with the detail and the samples. Everything here comes from four
 working apps beside this repo: [hyperberry](https://github.com/zsavajji/hyperberry) (WhatsApp), [tengram](https://github.com/zsavajji/tengram) (Telegram), [bbmusic](https://github.com/zsavajji/bbytmusic) (YouTube Music) and
-[phoenix](https://github.com/zsavajji/phoenix) (Reddit). Paths like `../phoenix` assume the repos are checked out side by side, as the author has them; adjust to your layout.
+[phoenix](https://github.com/zsavajji/phoenix) (Reddit). This repo is self-contained: the code is in `samples/` (see the last section), and no app repo is needed.
 
 ## 1. What never changes
 
@@ -196,7 +196,7 @@ Detail: `docs/09-headless-service.md`.
 - `ssh bb10rootx` is a root shell over USB. The phone has no `head`, `tr`, `uniq`, `printf`, `diff`, `sqlite3`
   or `grep -A`: copy files off and filter on the Mac; write lines with `echo >>`.
 - **Running a test binary:** a new file runs only after `/proc/boot/pathtrust !<file>` (always with the `!`),
-  and a refused file stays refused. Give each build a fresh name; `../tengram/scripts/push.sh` does it all.
+  and a refused file stays refused. Give each build a fresh name; [samples/phone/push.sh](samples/phone/push.sh) does it all.
   Root cannot run an installed app's binaries, and a program started over ssh cannot load a `.so` of ours.
 - **Installing a `.bar` (ask first): the installer's PPS job.**
 
@@ -215,7 +215,7 @@ ssh bb10rootx '
 ```
 
   `result::success` and `actual_version::` say it worked. The version must have gone up. An install closes
-  the app and its engine; data survives an upgrade. `../phoenix/scripts/install-phone.sh` is the script form.
+  the app and its engine; data survives an upgrade. [samples/phone/install-phone.sh](samples/phone/install-phone.sh) is the script form.
 - **Installing an addon:** `/var/rootdata/installer <zip>`.
 
 Detail: `docs/10-phone-access-and-install.md`.
@@ -276,3 +276,7 @@ Detail: `docs/11-testing-and-debugging.md`.
 **Skills** (`skills/`): `bb10-cascades` (writing Cascades code), `bb10-pitfalls` (traps with phone-verified
 fixes), `bb10-ux` (the stock look and behaviour), `bb10-devices` (every model), `bb10-cxx20`,
 `bb10-build-deploy` (the QML lint lives there).
+
+## 12. Samples
+
+`samples/` holds the reference code the docs cite (not built in this repo; each dir has a README.md with the app file each sample came from): `engine-link` (UI side of the engine link), `engine-cxx20` (C++20 engine, scripts), `engine-go` (Go engine pieces), `docker` (image Dockerfiles), `third-party` (library build scripts and patches), `ui` (`.pro`, `main.cpp`, build and icon scripts), `descriptor` (`bar-descriptor.xml` variants), `cookbook` (Cascades excerpts), `headless` (memory-patch installer), `phone` (push, install, test drivers), `video`, `audio`, `design`, `lists`. Each doc ends with the samples it uses.

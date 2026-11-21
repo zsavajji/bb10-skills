@@ -1,0 +1,9 @@
+build/
+.reddit-keys
+engine/third_party/yyjson/
+app/assets/cacert.pem
+.DS_Store
+engine/tests/fixtures/mp4/*.mp4
+engine/third_party/libwebp/
+docs/memory/
+__pycache__/

@@ -4,7 +4,7 @@ Read this when: you build the engine process of a new app in C++20 with bb10-cxx
 
 Template: **phoenix** (newest). Variations: **bbmusic** (same shape, audio, fuzz targets, the phone's SQLite) and **tengram** (hand-written link line for TDLib). Why a separate process, and the repo layout: [02-architecture.md](02-architecture.md). Compilers and images: [03-toolchains.md](03-toolchains.md). Libraries (OpenSSL, curl, wolfSSL, opus, webp): [06-third-party-libs.md](06-third-party-libs.md). Headless packaging: [09-headless-service.md](09-headless-service.md).
 
-## 1. `engine/CMakeLists.txt` (from `phoenix/engine/CMakeLists.txt`)
+## 1. `engine/CMakeLists.txt` (from [samples/engine-cxx20/CMakeLists.txt](../samples/engine-cxx20/CMakeLists.txt))
 
 Header and the BB10 switch, verbatim:
 
@@ -37,7 +37,7 @@ Rules this encodes:
 
 - **One switch, `<PFX>_BB10`**, set from `CMAKE_CROSSCOMPILING OR QNX`. Everything that differs between the phone and the Mac hangs off it: where libraries come from, what links, whether tests exist. (bbmusic: `BBM_BB10`.)
 - **The same sources build twice**: for the phone with `-DCMAKE_TOOLCHAIN_FILE=/opt/bb10-cxx20/share/bb10-cxx20.cmake`, and on the Mac (host compiler, Homebrew libs) with **ASan + UBSan on by default**.
-- Phone-only code lives in a module whose sources are empty on the host: bbmusic's `platform` module (navigator, now-playing, Bluetooth routing) is `#ifdef __QNX__` (`bbmusic/engine/CMakeLists.txt`: "BB10 only: its sources are empty on the host").
+- Phone-only code lives in a module whose sources are empty on the host: bbmusic's `platform` module (navigator, now-playing, Bluetooth routing) is `#ifdef __QNX__` (BBMusic's engine CMakeLists: "BB10 only: its sources are empty on the host").
 
 ### One static library per module, with a dependency table
 
@@ -83,7 +83,7 @@ endforeach()
 | server | util net proto stream media audio innertube player store platform |
 | engine (the wiring) | all of the above |
 
-(`bbmusic/engine/CMakeLists.txt`.) The executable is one `add_executable(<name>d src/main.cpp)` linked to the top module (`core` in phoenix, `engine` in bbmusic), with the version from `project(... VERSION)` passed as a define (`PHX_VERSION`, `BBM_VERSION`).
+(BBMusic's engine CMakeLists.) The executable is one `add_executable(<name>d src/main.cpp)` linked to the top module (`core` in phoenix, `engine` in bbmusic), with the version from `project(... VERSION)` passed as a define (`PHX_VERSION`, `BBM_VERSION`).
 
 ### Tests: one program per file
 
@@ -111,7 +111,7 @@ if(NOT PHX_BB10)
 
 ## 2. Build scripts, verbatim
 
-### Cross build: `phoenix/scripts/build-engine.sh`
+### Cross build: [samples/engine-cxx20/scripts/build-engine.sh](../samples/engine-cxx20/scripts/build-engine.sh)
 
 ```sh
 #!/bin/sh
@@ -132,9 +132,9 @@ docker run --rm -v "$ROOT:/src" -w /src phoenix-build sh -euc '
 	ls -l build/engine-bb10/phoenixd'
 ```
 
-bbmusic's is identical with `bbmusic-build`, `build/engine-bb10/bbmusicd` (`bbmusic/scripts/build-engine.sh`). The unwinder check in it dates from before the toolchain's fix and a new app can leave it out (section 3). Note the image (`phoenix-build`) must exist: `docker build -t phoenix-build docker` (comment in `phoenix/docker/Dockerfile`).
+bbmusic's is identical with `bbmusic-build`, `build/engine-bb10/bbmusicd` (BBMusic's build-engine script). The unwinder check in it dates from before the toolchain's fix and a new app can leave it out (section 3). Note the image (`phoenix-build`) must exist: `docker build -t phoenix-build docker` (comment in [samples/docker/Dockerfile.openssl-curl](../samples/docker/Dockerfile.openssl-curl)).
 
-### Host tests: `phoenix/scripts/test-engine.sh`
+### Host tests: [samples/engine-cxx20/scripts/test-engine.sh](../samples/engine-cxx20/scripts/test-engine.sh)
 
 ```sh
 #!/bin/sh
@@ -156,15 +156,15 @@ fi
 
 Runs on the Mac, not in Docker (needs Homebrew curl, opus and so on). `scripts/test-engine.sh x` builds in a second folder, so two agents can build at once.
 
-### Fuzz targets: `bbmusic/scripts/fuzz-engine.sh [seconds per target, default 60]`
+### Fuzz targets: [samples/engine-cxx20/scripts/fuzz-engine.sh](../samples/engine-cxx20/scripts/fuzz-engine.sh) [seconds per target, default 60]
 
-For every parser of network bytes (WebM demuxer, UMP, protobuf, now-playing text protocol, player-response JSON, InnerTube JSON), one libFuzzer target `engine/tests/fuzz/<name>_fuzz.cpp` built with `-fsanitize=fuzzer,address,undefined`. It needs Homebrew's `llvm` (`/opt/homebrew/opt/llvm/bin/clang++`; Apple's clang has no libFuzzer), seeds a corpus from fixtures, runs each target for the time given, and exits 1 if any crashed. Rationale: C++ parsers of network bytes have no memory safety, so ASan/UBSan tests plus fuzz targets replace it (`bbmusic/PLAN.md` §3).
+For every parser of network bytes (WebM demuxer, UMP, protobuf, now-playing text protocol, player-response JSON, InnerTube JSON), one libFuzzer target `engine/tests/fuzz/<name>_fuzz.cpp` built with `-fsanitize=fuzzer,address,undefined`. It needs Homebrew's `llvm` (`/opt/homebrew/opt/llvm/bin/clang++`; Apple's clang has no libFuzzer), seeds a corpus from fixtures, runs each target for the time given, and exits 1 if any crashed. Rationale: C++ parsers of network bytes have no memory safety, so ASan/UBSan tests plus fuzz targets replace it (BBMusic's plan §3).
 
 ## 3. The `-lz` trap, and its fix in the toolchain
 
-**What happened.** The phone's `libz.so.2` exports a libgcc unwinder (`_Unwind_*`), and so do 18 other SDK shared libraries (19 in all, libc and libm among them: `bb10-cxx20/README.md`). The older driver put the program's libraries ahead of the C++ runtime on the link line, so with `-lz` the linker bound the runtime's unwinder calls to `libz`, and **the first `throw` crashed**: SIGSEGV in `libz.so.2@_Unwind_GetLanguageSpecificData` (`bbmusic/docs/plan/phase0.md` gate 0.3, Q10, 2026-11-14, with the `bb10-cxx20:latest` of that day).
+**What happened.** The phone's `libz.so.2` exports a libgcc unwinder (`_Unwind_*`), and so do 18 other SDK shared libraries (19 in all, libc and libm among them: [bb10-cxx20](https://github.com/zsavajji/bb10-cxx20)'s README). The older driver put the program's libraries ahead of the C++ runtime on the link line, so with `-lz` the linker bound the runtime's unwinder calls to `libz`, and **the first `throw` crashed**: SIGSEGV in `libz.so.2@_Unwind_GetLanguageSpecificData` (BBMusic's phase 0 notes gate 0.3, Q10, 2026-11-14, with the `bb10-cxx20:latest` of that day).
 
-**It is fixed in the toolchain, and you rely on that fix** (the owner's decision, 2026-11-21). Since bb10-cxx20 **v19.1.7-4** the driver links `libunwind.a` whole, before the program's objects and libraries, so no SDK library can supply the unwinder: "Linking `libz.a` by path is no longer necessary" (`bb10-cxx20/out/release-v19.1.7-4/notes.md`, `bb10-cxx20/README.md` "The unwinder ahead of the program's libraries"). For a new app:
+**It is fixed in the toolchain, and you rely on that fix** (the owner's decision, 2026-11-21). Since bb10-cxx20 **v19.1.7-4** the driver links `libunwind.a` whole, before the program's objects and libraries, so no SDK library can supply the unwinder: "Linking `libz.a` by path is no longer necessary" ([bb10-cxx20](https://github.com/zsavajji/bb10-cxx20)'s release notes, [bb10-cxx20](https://github.com/zsavajji/bb10-cxx20)'s README "The unwinder ahead of the program's libraries"). For a new app:
 
 - Pin a toolchain release of v19.1.7-4 or later ([03-toolchains.md](03-toolchains.md) section 1). Then `-lz`, or `libz.so` by path as Tengram links it, is fine, and so is any other SDK library.
 - You do not need the `libz.a` workaround or the `readelf` check below.
@@ -173,7 +173,7 @@ For every parser of network bytes (WebM demuxer, UMP, protobuf, now-playing text
 
 | App | Links zlib as | Why |
 |---|---|---|
-| Tengram | `/opt/bb10-sdk/target/qnx6/armle-v7/usr/lib/libz.so`, after `--end-group` (`tengram/engine/build.sh`, `tengram/scripts/build-deps.sh`), no check | relies on the driver's fix; its engine runs on the Q10 and the Classic |
+| Tengram | `/opt/bb10-sdk/target/qnx6/armle-v7/usr/lib/libz.so`, after `--end-group` ([samples/engine-cxx20/scripts/link-tdlib.sh](../samples/engine-cxx20/scripts/link-tdlib.sh), [samples/third-party/build-deps.sh](../samples/third-party/build-deps.sh)), no check | relies on the driver's fix; its engine runs on the Q10 and the Classic |
 | Phoenix, BBMusic | `/opt/bb10-sdk/target/qnx6/armle-v7/usr/lib/libz.a` by full path, and `build-engine.sh` fails the build when the binary imports an unwinder | the workaround from BBMusic's gate 0.3, written before the fix; it still works and was never removed |
 
 The workaround's check, for reading those two scripts or for a build on an image older than v19.1.7-4:
@@ -186,9 +186,9 @@ Still open in the toolchain's own notes: its new tests `exceptions-z` and `excep
 
 ## 4. Link order and system libraries
 
-- **Static libraries first, in dependency order, then `-lsocket`.** Phoenix: `libcurl.a`, `libssl.a`, `libcrypto.a`, then `libz.a`, then `-lsocket` (comment in `phoenix/engine/CMakeLists.txt`: "Order matters: curl, ssl, crypto, then libz.a and -lsocket"). bbmusic: `libcurl.a`, `libwolfssl.a`, `libopus.a`, then `libz.a` and `-lsocket` (kept in a `bbm_syslibs` interface target linked last).
+- **Static libraries first, in dependency order, then `-lsocket`.** Phoenix: `libcurl.a`, `libssl.a`, `libcrypto.a`, then `libz.a`, then `-lsocket` (comment in [samples/engine-cxx20/CMakeLists.txt](../samples/engine-cxx20/CMakeLists.txt): "Order matters: curl, ssl, crypto, then libz.a and -lsocket"). bbmusic: `libcurl.a`, `libwolfssl.a`, `libopus.a`, then `libz.a` and `-lsocket` (kept in a `bbm_syslibs` interface target linked last).
 - **`CURL_STATICLIB`** must be defined for code that includes `<curl/curl.h>` when libcurl is static (`target_compile_definitions(... CURL_STATICLIB)`).
-- **`-lbps` is not added by this driver** (XIAZY's `bb10-cc` adds it; `bb10-clang++` does not). Add `-lbps`, `-lscreen`, `-lEGL -lGLESv2` yourself if used (`bb10-cxx20/README.md` Limitations; `base-bb10/skills/bb10-cxx20/SKILL.md`).
+- **`-lbps` is not added by this driver** (XIAZY's `bb10-cc` adds it; `bb10-clang++` does not). Add `-lbps`, `-lscreen`, `-lEGL -lGLESv2` yourself if used ([bb10-cxx20](https://github.com/zsavajji/bb10-cxx20)'s README Limitations; [skills/bb10-cxx20](../skills/bb10-cxx20/SKILL.md)).
 - System libraries the engines link, as used:
 
 | Library | Used for | Where |
@@ -197,14 +197,14 @@ Still open in the toolchain's own notes: its new tests `exceptions-z` and `excep
 | `-lm` | math | tengram |
 | `-lbps` | navigator, BPS events, notifications | bbmusic `platform`; tengram |
 | `-lasound -laudio_manager` | speaker through libasound opened via `audio_manager`; Bluetooth routing (`-laudio_manager`) | bbmusic `audio`, `platform` |
-| `-lmmrndclient -lstrm` | tengram engine's system libs | `tengram/engine/build.sh` |
-| `-lsqlite3` | the **phone's own SQLite** (no unwinder in it, has WAL): bbmusic `store` links it rather than an amalgamation | `bbmusic/engine/CMakeLists.txt` |
+| `-lmmrndclient -lstrm` | tengram engine's system libs | [samples/engine-cxx20/scripts/link-tdlib.sh](../samples/engine-cxx20/scripts/link-tdlib.sh) |
+| `-lsqlite3` | the **phone's own SQLite** (no unwinder in it, has WAL): bbmusic `store` links it rather than an amalgamation | BBMusic's engine CMakeLists |
 
-- The phone's SQLite version differs between notes (3.8.7.1 measured by HyperBerry, 3.7.14.1 stated for bbmusic): write SQL that both accept. bbmusic: "no SQL newer than that, so no upsert" (`bbmusic/PLAN.md` §8). `bbmusic/PLAN.md` §13 says the SQLite amalgamation is "fetched, pinned" but the CMake file links `-lsqlite3`; the CMake file is newer and wins.
+- The phone's SQLite version differs between notes (3.8.7.1 measured by HyperBerry, 3.7.14.1 stated for bbmusic): write SQL that both accept. bbmusic: "no SQL newer than that, so no upsert" (BBMusic's plan §8). BBMusic's plan §13 says the SQLite amalgamation is "fetched, pinned" but the CMake file links `-lsqlite3`; the CMake file is newer and wins.
 - TLS libs and curl flags: [06-third-party-libs.md](06-third-party-libs.md).
 - Hand `curl` the CA bundle at run time: phoenix and bbmusic call `http_set_ca_file("app/native/assets/cacert.pem")` under `#ifdef __QNX__` if the file is readable (`CURLOPT_CAINFO`; env override `PHX_CA_FILE` / `BBM_CA_FILE` for the host).
 
-## 5. Tengram's hand-written link line (`tengram/engine/build.sh`)
+## 5. Tengram's hand-written link line ([samples/engine-cxx20/scripts/link-tdlib.sh](../samples/engine-cxx20/scripts/link-tdlib.sh))
 
 TDLib is a pile of static libraries with circular references, so tengram does not use CMake for the engine; it runs one `bb10-clang++` in the `tengram-build` image. The pieces, verbatim:
 
@@ -221,11 +221,11 @@ $L/libtgcalls.a $L/libtg_owt.a $L/libssl.a $L/libcrypto.a $L/libopus.a -Wl,--end
 - **`-Wl,--start-group ... --end-group`** around the static archives resolves their circular references. **`-Wl,--gc-sections`** drops unused code; the OpenSSL and TDLib objects are built with `-ffunction-sections -fdata-sections` for it.
 - **`-isystem`** keeps TDLib's header warnings out of the output.
 - **ThinLTO**: `${TD_LTO:+-flto=thin}` is added to the compile/link when the libraries were built with LTO (`TD_LTO` defaults to on; `TD_LTO=` empty if built with `TD_LTO=OFF`). Archives then hold LLVM bitcode; code is generated at link time. This needs a bb10-cxx20 with the LTO plugin (the `emutls-lto` image).
-- **Separate strip**: `bb10-clang++ ... -o build/tengramd.unstripped $LIBS -lbps -lmmrndclient -lstrm`, then `/opt/bb10-toolchain/bin/arm-unknown-nto-qnx6.5.0eabi-strip -o build/tengramd build/tengramd.unstripped`. Keep the unstripped file for symbolizing crashes. (37 MB static stripped: `tengram/docs/HANDOFF.md` §4.)
-- **Keys compiled in from the environment, never written to a file** (the packaged service gets no environment of ours): `engine/build.sh` passes `-e TG_API_ID -e TG_API_HASH` into the container and adds `-DTENGRAM_API_ID=$TG_API_ID -DTENGRAM_API_HASH="$TG_API_HASH"` only when both are set. `scripts/build-app.sh` reads them from the environment or from a git-ignored key file at the repo root. Never put keys in a tracked file, notes or memory (`tengram/docs/HANDOFF.md` §3).
+- **Separate strip**: `bb10-clang++ ... -o build/tengramd.unstripped $LIBS -lbps -lmmrndclient -lstrm`, then `/opt/bb10-toolchain/bin/arm-unknown-nto-qnx6.5.0eabi-strip -o build/tengramd build/tengramd.unstripped`. Keep the unstripped file for symbolizing crashes. (37 MB static stripped: Tengram's handoff notes §4.)
+- **Keys compiled in from the environment, never written to a file** (the packaged service gets no environment of ours): `engine/build.sh` passes `-e TG_API_ID -e TG_API_HASH` into the container and adds `-DTENGRAM_API_ID=$TG_API_ID -DTENGRAM_API_HASH="$TG_API_HASH"` only when both are set. `scripts/build-app.sh` reads them from the environment or from a git-ignored key file at the repo root. Never put keys in a tracked file, notes or memory (Tengram's handoff notes §3).
 - Extra tools built the same way: `build/dbq` (database query tool for the phone, which has no `sqlite3`) and `build/voice_check`.
 
-## 6. Toolchain limits to design around (`bb10-cxx20/README.md`)
+## 6. Toolchain limits to design around ([bb10-cxx20](https://github.com/zsavajji/bb10-cxx20)'s README)
 
 | Limit | Consequence |
 |---|---|
@@ -240,7 +240,7 @@ $L/libtgcalls.a $L/libtg_owt.a $L/libssl.a $L/libcrypto.a $L/libopus.a -Wl,--end
 **Static vs shared C++ runtime.**
 
 - **Static, hermetic (the default)**: libc++/libc++abi/libunwind are linked in with hidden symbols, one private copy per executable or `.so`. Needed because BB10's libc/libm export a libgcc `_Unwind_*` that system libraries in the same process use. Do not let C++ objects or exceptions cross between two modules that each carry their own copy. All four engines use it.
-- **`-shared-libc++`**: for a program made of several `.so` that share C++ types, RTTI or exceptions. Ship **`libc++_shared.so.1`** (1.5 MB) in the `.bar` **under `native/lib`**, which is on the app's `LD_LIBRARY_PATH` via `<env var="LD_LIBRARY_PATH" value="app/native/lib:/usr/lib/qt4/lib"/>`. Ship shared libraries under their SONAME; symlinks are not carried (`base-bb10/skills/bb10-build-deploy/SKILL.md`). With `-shared-libc++`, `libc++_shared.so.1` must be the first library needed (`bb10-cxx20/tests/build.sh` checks it).
+- **`-shared-libc++`**: for a program made of several `.so` that share C++ types, RTTI or exceptions. Ship **`libc++_shared.so.1`** (1.5 MB) in the `.bar` **under `native/lib`**, which is on the app's `LD_LIBRARY_PATH` via `<env var="LD_LIBRARY_PATH" value="app/native/lib:/usr/lib/qt4/lib"/>`. Ship shared libraries under their SONAME; symlinks are not carried ([skills/bb10-build-deploy](../skills/bb10-build-deploy/SKILL.md)). With `-shared-libc++`, `libc++_shared.so.1` must be the first library needed ([bb10-cxx20](https://github.com/zsavajji/bb10-cxx20)'s test build script checks it).
 - Libraries of other languages' ABIs: a C API behind its own `.so` (`libtgs.so`, [03-toolchains.md](03-toolchains.md)).
 - Frame pointers are dropped when optimising (v19.1.7-4); `-fno-omit-frame-pointer` still wins (host ASan build uses it).
 - A C++ program that uses neither exceptions nor libc++ is about 36 KB larger, since the unwinder is always linked in (v19.1.7-4 notes).
@@ -250,8 +250,8 @@ $L/libtgcalls.a $L/libtg_owt.a $L/libssl.a $L/libcrypto.a $L/libopus.a -Wl,--end
 
 A symbol missing from the phone's `libc.so.3` / `libm.so.2` links fine against the SDK headers and fails only at load on the phone ("symbol not found"). Check every import against the libraries the phone has.
 
-- **bb10-cxx20's own check** (`bb10-cxx20/tests/build.sh`): collect the defined dynamic symbols of the phone's libraries (`nm -D --defined-only`), then for each binary `nm -D --undefined-only | awk '$1 == "U" { print $2 }' | sort -u | comm -23 - "$defined"`; anything left is "not on BB10". Fix by avoiding the function, or by adding it to bb10-cxx20's `src-rt/` and `include/bb10-compat/`.
-- **HyperBerry's version** (`hyperberry/scripts/build-engine.sh`), for the libs its Go engine uses:
+- **bb10-cxx20's own check** ([bb10-cxx20](https://github.com/zsavajji/bb10-cxx20)'s test build script): collect the defined dynamic symbols of the phone's libraries (`nm -D --defined-only`), then for each binary `nm -D --undefined-only | awk '$1 == "U" { print $2 }' | sort -u | comm -23 - "$defined"`; anything left is "not on BB10". Fix by avoiding the function, or by adding it to bb10-cxx20's `src-rt/` and `include/bb10-compat/`.
+- **HyperBerry's version** ([samples/engine-go/build-engine.sh](../samples/engine-go/build-engine.sh)), for the libs its Go engine uses:
 
 ```sh
 L=$QNX_TARGET/armle-v7/lib
@@ -264,9 +264,9 @@ missing=$(nm -D --undefined-only /src/build/hyperberryd | awk "\$1 == \"U\" { pr
 [ -z "$missing" ] || { echo "not on BB10: $missing"; exit 1; }
 ```
 
-  The C++ phoenix/bbmusic scripts have no such check; add this block when your engine links more system libraries.
-- A build that links is not a build that loads: "Builds, then 'symbol not found' on the phone" is the first thing to check (`base-bb10/skills/bb10-cxx20/SKILL.md` "When something breaks"). Also: exceptions that crash instead of being caught point at the `.ARM.exidx` link script (`share/bb10-exidx.ld` is added to every link; keep it if you write a custom link line) and at `R_ARM_TARGET2` (fixed in libc++abi).
-- **Trap for the phone-side run:** a copied binary runs only after `/proc/boot/pathtrust !<path>` on a file never executed before; a refused file stays refused, even a new file on the same inode. Always use the `!`; without it the whole filesystem is trusted. `bbmusic/scripts/push-phone.sh` and `hyperberry/scripts/push-engine.sh` do it: a fresh name per build (`<name>-<sha8>-<n>`), a refused copy parked in `denied/`. Name data files so they do not match `<program>-*` (the push script removes older copies by that pattern). Details: [10-phone-access-and-install.md](10-phone-access-and-install.md).
+  The C++ Phoenix and BBMusic scripts have no such check; add this block when your engine links more system libraries.
+- A build that links is not a build that loads: "Builds, then 'symbol not found' on the phone" is the first thing to check ([skills/bb10-cxx20](../skills/bb10-cxx20/SKILL.md) "When something breaks"). Also: exceptions that crash instead of being caught point at the `.ARM.exidx` link script (`share/bb10-exidx.ld` is added to every link; keep it if you write a custom link line) and at `R_ARM_TARGET2` (fixed in libc++abi).
+- **Trap for the phone-side run:** a copied binary runs only after `/proc/boot/pathtrust !<path>` on a file never executed before; a refused file stays refused, even a new file on the same inode. Always use the `!`; without it the whole filesystem is trusted. BBMusic's push-phone script and [samples/phone/push-engine.sh](../samples/phone/push-engine.sh) do it: a fresh name per build (`<name>-<sha8>-<n>`), a refused copy parked in `denied/`. Name data files so they do not match `<program>-*` (the push script removes older copies by that pattern). Details: [10-phone-access-and-install.md](10-phone-access-and-install.md).
 
 ## 8. Engine conventions seen in the apps
 
@@ -274,25 +274,33 @@ Read from the three `main.cpp` files; confirm in them before copying.
 
 | Convention | Where |
 |---|---|
-| **Arguments**: `--data DIR`, `--version`; **ignore the navigator's own arguments** instead of exiting (bbmusic and tengram once exited in 60-80 ms on them). Phoenix and bbmusic print usage for an unknown `--x` and ignore plain words, which is how the navigator's own arguments (package name, `invoke://localhost`) pass | `phoenix/engine/src/main.cpp`, `bbmusic/engine/src/main.cpp`, `tengram/engine/main.cpp` |
+| **Arguments**: `--data DIR`, `--version`; **ignore the navigator's own arguments** instead of exiting (bbmusic and tengram once exited in 60-80 ms on them). Phoenix and bbmusic print usage for an unknown `--x` and ignore plain words, which is how the navigator's own arguments (package name, `invoke://localhost`) pass | [samples/engine-cxx20/main-child.cpp](../samples/engine-cxx20/main-child.cpp), [samples/engine-cxx20/main-headless.cpp](../samples/engine-cxx20/main-headless.cpp), [samples/engine-cxx20/main-tdlib-service.cpp](../samples/engine-cxx20/main-tdlib-service.cpp) |
 | Default data dir is **`$HOME`** (the sandbox's `data/`), else `data` | phoenix, bbmusic |
-| `--data` for a **test run outside the sandbox**; without it the engine is the packaged service (tengram) | `tengram/docs/HANDOFF.md` §3 |
+| `--data` for a **test run outside the sandbox**; without it the engine is the packaged service (tengram) | Tengram's handoff notes §3 |
 | `signal(SIGPIPE, SIG_IGN)`; `SIGINT`/`SIGTERM` **blocked before any other thread exists**, then one `sigwait` thread asks the engine to stop cleanly (removes `engine.json`) | phoenix, bbmusic |
 | **Log to a file in the data folder** (`phoenixd.log`, `bbmusicd.log`, `logs/tengramd.log`, previous one kept once it passes 1 MB): a headless app's stderr goes nowhere | the three `main.cpp` |
-| **Log a start line**: `"<name> <version>, data in <dir>"`; tengram also logs **its rlimits** at start (`rlimit DATA: soft ..., hard ...`) and `out of memory: an allocation failed` on a failed allocation; that line says whether the phone has the memory patch | `tengram/engine/main.cpp`, `tengram/docs/headless-cap.md` |
-| **Navigator first** (headless): bbmusic starts `Navigator().start(request_exit)` right after blocking signals, "it slays a headless process that has not reached it within 6 s"; the navigator's exit request becomes a clean stop | `bbmusic/engine/src/main.cpp` |
-| **Exit by itself after idle**: bbmusic exits after **ten minutes with nothing playing and no UI connected**; it does not start at boot (`PlayState::Stopped` or `Paused` with 0 authenticated clients) | `bbmusic/PLAN.md` §3, `bbmusic/engine/src/engine/engine.cpp` (`idle_check`) |
-| Tengram: no timer of its own; one `poll()` loop; **one engine per data folder** via an `flock` on `engine.lock` (exit code 3 if taken); `umask(077)` | `tengram/engine/main.cpp` |
-| Phoenix: exits when stdin closes | `phoenix/docs/protocol.md` |
+| **Log a start line**: `"<name> <version>, data in <dir>"`; tengram also logs **its rlimits** at start (`rlimit DATA: soft ..., hard ...`) and `out of memory: an allocation failed` on a failed allocation; that line says whether the phone has the memory patch | [samples/engine-cxx20/main-tdlib-service.cpp](../samples/engine-cxx20/main-tdlib-service.cpp), Tengram's headless-limit notes |
+| **Navigator first** (headless): bbmusic starts `Navigator().start(request_exit)` right after blocking signals, "it slays a headless process that has not reached it within 6 s"; the navigator's exit request becomes a clean stop | [samples/engine-cxx20/main-headless.cpp](../samples/engine-cxx20/main-headless.cpp) |
+| **Exit by itself after idle**: bbmusic exits after **ten minutes with nothing playing and no UI connected**; it does not start at boot (`PlayState::Stopped` or `Paused` with 0 authenticated clients) | BBMusic's plan §3, BBMusic's engine code (`idle_check`) |
+| Tengram: no timer of its own; one `poll()` loop; **one engine per data folder** via an `flock` on `engine.lock` (exit code 3 if taken); `umask(077)` | [samples/engine-cxx20/main-tdlib-service.cpp](../samples/engine-cxx20/main-tdlib-service.cpp) |
+| Phoenix: exits when stdin closes | Phoenix's protocol notes |
 | `engine.json` written and removed as described in [02-architecture.md](02-architecture.md) §3 | |
-| Fuzz targets for parsers of network bytes; every test runs under ASan/UBSan on the Mac | `bbmusic/scripts/fuzz-engine.sh`, `bbmusic/PLAN.md` §3 |
-| Keep the sample path in integers (no libm call per sample): `std::lrint` per sample cost 18.6 % of a core vs 5.7 % with an integer multiply and shift | `bbmusic/docs/plan/phase0.md` gate 0.4 |
+| Fuzz targets for parsers of network bytes; every test runs under ASan/UBSan on the Mac | [samples/engine-cxx20/scripts/fuzz-engine.sh](../samples/engine-cxx20/scripts/fuzz-engine.sh), BBMusic's plan §3 |
+| Keep the sample path in integers (no libm call per sample): `std::lrint` per sample cost 18.6 % of a core vs 5.7 % with an integer multiply and shift | BBMusic's phase 0 notes gate 0.4 |
 
-## Sources
+## Samples
 
-- `phoenix/engine/CMakeLists.txt`, `phoenix/engine/src/main.cpp`, `phoenix/scripts/build-engine.sh`, `phoenix/scripts/test-engine.sh`, `phoenix/docker/Dockerfile`
-- `bbmusic/engine/CMakeLists.txt`, `bbmusic/engine/src/main.cpp`, `bbmusic/engine/src/engine/engine.cpp`, `bbmusic/scripts/build-engine.sh`, `bbmusic/scripts/test-engine.sh`, `bbmusic/scripts/fuzz-engine.sh`, `bbmusic/scripts/push-phone.sh`, `bbmusic/docker/Dockerfile`
-- `bbmusic/docs/plan/phase0.md`, `bbmusic/PLAN.md` (§3, §8, §13)
-- `tengram/engine/build.sh`, `tengram/engine/README.md`, `tengram/engine/main.cpp`, `tengram/engine/server.cpp`, `tengram/scripts/build-deps.sh`, `tengram/scripts/build-app.sh`, `tengram/docs/headless-cap.md`, `tengram/docs/HANDOFF.md`
-- `bb10-cxx20/README.md`, `bb10-cxx20/tests/build.sh`, `bb10-cxx20/cmake/bb10-cxx20.cmake`, `bb10-cxx20/out/release/NOTES.md`, `bb10-cxx20/out/release-v19.1.7-4/notes.md`, `bb10-cxx20/out/release-v19.1.7-5/notes.md`
-- `hyperberry/scripts/build-engine.sh`, `hyperberry/scripts/push-engine.sh`, `base-bb10/skills/bb10-cxx20/SKILL.md`, `base-bb10/skills/bb10-build-deploy/SKILL.md`
+- [samples/engine-cxx20/CMakeLists.txt](../samples/engine-cxx20/CMakeLists.txt)
+- [samples/engine-cxx20/main-child.cpp](../samples/engine-cxx20/main-child.cpp)
+- [samples/engine-cxx20/scripts/build-engine.sh](../samples/engine-cxx20/scripts/build-engine.sh)
+- [samples/engine-cxx20/scripts/test-engine.sh](../samples/engine-cxx20/scripts/test-engine.sh)
+- [samples/docker/Dockerfile.openssl-curl](../samples/docker/Dockerfile.openssl-curl)
+- [samples/engine-cxx20/main-headless.cpp](../samples/engine-cxx20/main-headless.cpp)
+- [samples/engine-cxx20/scripts/fuzz-engine.sh](../samples/engine-cxx20/scripts/fuzz-engine.sh)
+- [samples/docker/Dockerfile.wolfssl-curl-opus](../samples/docker/Dockerfile.wolfssl-curl-opus)
+- [samples/engine-cxx20/scripts/link-tdlib.sh](../samples/engine-cxx20/scripts/link-tdlib.sh)
+- [samples/engine-cxx20/main-tdlib-service.cpp](../samples/engine-cxx20/main-tdlib-service.cpp)
+- [samples/engine-cxx20/server.cpp](../samples/engine-cxx20/server.cpp)
+- [samples/third-party/build-deps.sh](../samples/third-party/build-deps.sh)
+- [samples/engine-go/build-engine.sh](../samples/engine-go/build-engine.sh)
+- [samples/phone/push-engine.sh](../samples/phone/push-engine.sh)

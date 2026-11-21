@@ -8,15 +8,15 @@ Choosing between Go and C++20 is in [02-architecture.md](02-architecture.md) §6
 
 | Item | Value | Source |
 |---|---|---|
-| Go | **go-qnx 1.27.2** (XIAZY's fork), `GOOS=qnx GOARCH=arm GOARM=7`. Its README reports `go test -short std` on a BB10 phone: 377 packages, 0 failures | `hyperberry/PLAN.md` §2 |
-| Image | go-qnx's `/usr/local/go` copied into the bb10-cxx20 image | `hyperberry/docker/Dockerfile` |
+| Go | **go-qnx 1.27.2** (XIAZY's fork), `GOOS=qnx GOARCH=arm GOARM=7`. Its README reports `go test -short std` on a BB10 phone: 377 packages, 0 failures | HyperBerry's plan §2 |
+| Image | go-qnx's `/usr/local/go` copied into the bb10-cxx20 image | [samples/docker/Dockerfile.go](../samples/docker/Dockerfile.go) |
 | Pin | go-qnx image **by digest**: `ghcr.io/xiazy/go-qnx:1.27.2@sha256:1915ce0568acda8de04c82be016a47fa267858aef4b7c7b77402363770c04669` | same |
-| Why the digest | "go-qnx's README says to pin its image by digest: its go1.27.2 has Google's version string but not Google's bytes" | Dockerfile comment; `hyperberry/docs/plan/design.md` §8 |
-| cgo | supported on qnx/arm with an external C compiler: **`CC=bb10-clang`** (from bb10-cxx20), `CGO_ENABLED=1` | `hyperberry/PLAN.md` §2 |
-| `GOTOOLCHAIN` | `local` (set in the Dockerfile with `PATH=/usr/local/go/bin:$PATH`) | `hyperberry/docker/Dockerfile` |
-| `golang.org/x/sys` | replaced by XIAZY's fork in `engine/go.mod` | `hyperberry/engine/go.mod` |
-| Go cache | `~/.cache/hyperberry-go` on the Mac, mounted at `/cache`, "apart from stock Go's (go-qnx README)" | `hyperberry/scripts/build-engine.sh` |
-| Base image tag | `bb10-cxx20:19.1.7-5-build` | `hyperberry/docker/Dockerfile` |
+| Why the digest | "go-qnx's README says to pin its image by digest: its go1.27.2 has Google's version string but not Google's bytes" | Dockerfile comment; HyperBerry's design notes §8 |
+| cgo | supported on qnx/arm with an external C compiler: **`CC=bb10-clang`** (from bb10-cxx20), `CGO_ENABLED=1` | HyperBerry's plan §2 |
+| `GOTOOLCHAIN` | `local` (set in the Dockerfile with `PATH=/usr/local/go/bin:$PATH`) | [samples/docker/Dockerfile.go](../samples/docker/Dockerfile.go) |
+| `golang.org/x/sys` | replaced by XIAZY's fork in `engine/go.mod` | [samples/engine-go/go.mod](../samples/engine-go/go.mod) |
+| Go cache | `~/.cache/hyperberry-go` on the Mac, mounted at `/cache`, "apart from stock Go's (go-qnx README)" | [samples/engine-go/build-engine.sh](../samples/engine-go/build-engine.sh) |
+| Base image tag | `bb10-cxx20:19.1.7-5-build` | [samples/docker/Dockerfile.go](../samples/docker/Dockerfile.go) |
 
 The Dockerfile, in short:
 
@@ -29,7 +29,7 @@ ENV PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=local
 
 then libopus built twice (BB10 sysroot and host, [06-third-party-libs.md](06-third-party-libs.md)), and `apt-get install patch` "for engine/framesocket.patch".
 
-`go.mod` (`hyperberry/engine/go.mod`), the lines that matter:
+`go.mod` ([samples/engine-go/go.mod](../samples/engine-go/go.mod)), the lines that matter:
 
 ```
 module hyperberry/engine
@@ -39,9 +39,9 @@ go 1.27.2
 replace golang.org/x/sys => github.com/XIAZY/go-sys-qnx v0.0.0-20261016215730-6348336c2429
 ```
 
-Libraries pinned there include `github.com/mattn/go-sqlite3 v1.14.52`, `github.com/polymorfa/hypermeow v0.0.0-20261112193137-7ced3258db46` (a `main` pseudo-version "because its README retracts every tag": `hyperberry/PLAN.md` §2; it needs Go >= 1.26), `github.com/purpshell/meowcaller` (calls) and `golang.org/x/crypto/x509roots/fallback`.
+Libraries pinned there include `github.com/mattn/go-sqlite3 v1.14.52`, `github.com/polymorfa/hypermeow v0.0.0-20261112193137-7ced3258db46` (a `main` pseudo-version "because its README retracts every tag": HyperBerry's plan §2; it needs Go >= 1.26), `github.com/purpshell/meowcaller` (calls) and `golang.org/x/crypto/x509roots/fallback`.
 
-Go code rule: **std plus the protocol library only; cgo only for SQLite, BPS, UDS and libopus** (`hyperberry/docs/plan/design.md` §6; `PLAN.md` §12).
+Go code rule: **std plus the protocol library only; cgo only for SQLite, BPS, UDS and libopus** (HyperBerry's design notes §6; `PLAN.md` §12).
 
 ## 2. `scripts/build-engine.sh`, verbatim
 
@@ -82,7 +82,7 @@ What each part does:
 - **`-trimpath -ldflags="-s -w"`**: the release flags; the script gives no reason beyond them.
 - **The imported-symbols check**: collect the dynamic symbols that the phone's libraries define (libc, libm, libsocket, libbps, libunifieddatasourcec, libmmrndclient, libstrm), then fail if the binary imports one not in the list. Same trap as in [04-engine-cxx20.md](04-engine-cxx20.md) §7: "such a binary links here and fails only on the phone". Extend the library list when the engine links a new system library.
 - **`GOWORK`** from `hypermeow-work.sh` (section 5).
-- Gate 0.1 result: hypermeow builds unmodified (`CGO_ENABLED=0`: 14 MB); with `mattn/go-sqlite3` through bb10-clang: 15.6 MB, all 153 imports present (`hyperberry/docs/plan/phase0.md` 0.1).
+- Gate 0.1 result: hypermeow builds unmodified (`CGO_ENABLED=0`: 14 MB); with `mattn/go-sqlite3` through bb10-clang: 15.6 MB, all 153 imports present (HyperBerry's phase 0 notes 0.1).
 
 `push-engine.sh` copies a test build to the phone (scratch folder `/root/hyperberry`, `pathtrust !`, fresh name per build): [10-phone-access-and-install.md](10-phone-access-and-install.md).
 
@@ -107,16 +107,16 @@ docker run --rm -v "$ROOT:/src" -v "$CACHE:/cache" -w /src/engine \
 ```
 
 - **Same image, `CC=cc`** (the image's host compiler) and no `GOOS`: the engine is plain Go, so it also builds for Linux with the same go-qnx toolchain. Most of Phase 1 ran this way, against a **simulated account** (`-sim` or a file `data/sim`, `sim*.go`, driven by `scripts/sim.py`), and the protocol is tested with `socat - TCP:127.0.0.1:<port>` and typed JSON (`design.md` §8).
-- **`*_qnx.go` for phone-only code** with `//go:build qnx` and a matching `*_other.go` stub for the PC: `navigator_qnx.go`/`navigator_other.go`, `hub_qnx.go`/`hub_other.go`, `net_qnx.go`/`net_other.go`, `ringtone_qnx.go`/`ringtone_other.go` (`hyperberry/engine/`). These use cgo with `#cgo LDFLAGS: -lbps`.
+- **`*_qnx.go` for phone-only code** with `//go:build qnx` and a matching `*_other.go` stub for the PC: `navigator_qnx.go`/`navigator_other.go`, `hub_qnx.go`/`hub_other.go`, `net_qnx.go`/`net_other.go`, `ringtone_qnx.go`/`ringtone_other.go` (HyperBerry's engine). These use cgo with `#cgo LDFLAGS: -lbps`.
 - Pitfall seen with the tests: a request field of the same name and another type as one in the server's envelope fails the whole request as `bad_request`; handler-level tests (`r.raw`) did not see it. **Test a new field through the socket** (`pitfalls.md`, "Go on BB10").
 
 ## 4. Memory under the headless cap
 
-- Headless entry point: **3 MB** heap without a memory class; the engine "exited 47 ms after launch, before `main`", and the UI's invoke got error 6 (`Target`). `_sys_headless_xlarge` lifts it (30 MiB; 128 MiB with `rlimit-patch`). Idle and unlinked the engine held 6.4 MB (`hyperberry/docs/plan/phase0.md` 0.3; `rlimit-patch/README.md`). All the headless rules: [09-headless-service.md](09-headless-service.md).
-- **The runtime writes one byte to every heap and stack page before use**: 1.7 ms per MB on BB10, once per page (go-qnx README, in `hyperberry/PLAN.md` §2).
+- Headless entry point: **3 MB** heap without a memory class; the engine "exited 47 ms after launch, before `main`", and the UI's invoke got error 6 (`Target`). `_sys_headless_xlarge` lifts it (30 MiB; 128 MiB with `rlimit-patch`). Idle and unlinked the engine held 6.4 MB (HyperBerry's phase 0 notes 0.3; `rlimit-patch/README.md`). All the headless rules: [09-headless-service.md](09-headless-service.md).
+- **The runtime writes one byte to every heap and stack page before use**: 1.7 ms per MB on BB10, once per page (go-qnx README, in HyperBerry's plan §2).
 - **Out of memory is not recoverable in Go**, and an allocation other platforms shrug off kills the engine: hypermeow believed a frame's claimed length (fixed by `engine/framesocket.patch`) (`pitfalls.md`).
-- **Knobs**: `debug.SetMemoryLimit` and a lower `GOGC` "before anything structural" (`design.md` §6). `main.go` calls `rdebug.SetMemoryLimit(goMemLimit(memMB))`; the limit "follows the real cap (four fifths of it)" (`hyperberry/docs/plan/translate.md`). It was `SetMemoryLimit(24 MB)` before the memory patch (`hyperberry/docs/plan/phase7.md`).
-- **Design to the cap**: whole files and pictures in memory cannot work. Files stream (downloads through `DownloadToFile`, uploads through `UploadReader` with a temporary file); **the engine never decodes a picture**: the UI makes photo previews with Qt's JPEG reader into `data/cache/previews/` (`hyperberry/docs/plan/phase6.md`). Two real 30 MiB failures were bugs fixed at the source, not cap problems: a voice note decoded whole (31 MB) and a group list fetched with its members (`translate.md`).
+- **Knobs**: `debug.SetMemoryLimit` and a lower `GOGC` "before anything structural" (`design.md` §6). `main.go` calls `rdebug.SetMemoryLimit(goMemLimit(memMB))`; the limit "follows the real cap (four fifths of it)" (HyperBerry's translation notes). It was `SetMemoryLimit(24 MB)` before the memory patch (HyperBerry's phase 7 notes).
+- **Design to the cap**: whole files and pictures in memory cannot work. Files stream (downloads through `DownloadToFile`, uploads through `UploadReader` with a temporary file); **the engine never decodes a picture**: the UI makes photo previews with Qt's JPEG reader into `data/cache/previews/` (HyperBerry's phase 6 notes). Two real 30 MiB failures were bugs fixed at the source, not cap problems: a voice note decoded whole (31 MB) and a group list fetched with its members (`translate.md`).
 - **Calls audio runs in the UI process** because of the capped heap: "the microphone, the speaker and their buffers belong to the UI process, which has no such cap. The engine keeps what only Go can do: meowcaller's signalling, SRTP and the MLOW codec" (`phase7.md`, the user's calls, 2026-11-07). Contrast: bbmusic's engine owns the speaker (C++ heap, no GC).
 - **`crash.log`**: keeps old crashes, and an out-of-memory dump's first stack is who asked last, not who took the memory. Grep a dump for every `main.` frame and read `git log` around its date before blaming (`pitfalls.md`).
 
@@ -168,7 +168,7 @@ The recipe, for any dependency you must patch:
 4. **Why not `go -overlay`**: it "refuses files in the module cache".
 5. The patch files live in `engine/` (`framesocket.patch`, `hypermeow-status.patch`, `hypermeow-fullsync.patch`, `meowcaller*.patch`, `meowcaller/0N-*.patch`) and are applied at build time. Bumping the dependency may stop the build: that is the intent.
 
-## 6. Go-specific findings (`hyperberry/docs/plan/pitfalls.md` "Go on BB10", in full, with the other recorded ones)
+## 6. Go-specific findings (HyperBerry's pitfalls notes "Go on BB10", in full, with the other recorded ones)
 
 All tagged [Q10] (seen on the user's Q10) unless noted.
 
@@ -192,23 +192,27 @@ All tagged [Q10] (seen on the user's Q10) unless noted.
 | Notifications from the engine: BPS `notify`/`withdraw` initialise BPS on the calling thread, so any goroutine can post; they work only from an app, not from a root shell | gate 0.5 |
 | Pitfall of the test harness: the **gate pages invoke the engine with actions** (`com.zsavajji.hyperberry.SQLTEST`) because a headless launch gets no arguments | gate 0.4 |
 
-## 7. When Go is the wrong choice (`bbmusic/PLAN.md` §3 "Why C++ and not Go")
+## 7. When Go is the wrong choice (BBMusic's plan §3 "Why C++ and not Go")
 
 - Go's gains (TLS 1.3, an HTTP client, JSON, development on the Mac) are available in C++ from wolfSSL or OpenSSL, libcurl and yyjson; the Mac loop belongs to "an engine with no Qt in it", not to Go.
 - Go's costs: a **15.6 MB binary** (HyperBerry's, measured) against 3-4 MB for a C++ engine (the gate 0.3 probe with libcurl, wolfSSL and the C++ runtime is 2.4 MB stripped); a **garbage-collected heap inside a headless memory class**, where running out kills the process; **cgo** for libopus, libasound, BPS and SQLite; a dependency on the go-qnx fork.
-- Tengram: "a Go runtime would eat the margin" under the 30 MiB cap, and TDLib is C++ (`tengram/NOTES.md`).
+- Tengram: "a Go runtime would eat the margin" under the 30 MiB cap, and TDLib is C++ (Tengram's notes).
 - C++ costs: parsers of network bytes without memory safety. Mitigation: ASan/UBSan on the Mac and fuzz targets ([04-engine-cxx20.md](04-engine-cxx20.md)).
 - **Choose Go** only when the protocol library you need is Go (HyperBerry: hypermeow, a whatsmeow fork). There is no Go library in bbmusic, tengram or phoenix.
 
-## 8. The engine's files (`hyperberry/docs/plan/design.md` §6)
+## 8. The engine's files (HyperBerry's design notes §6)
 
 One Go file per job, no interface with a single implementation: `main.go`/`engine.go` (flags, data dir; `-sim`), `log.go` (`data/logs/hyperberryd.log`, 256 KiB, one rotation), `roots.go`, `navigator_qnx.go`, `server.go` (loopback socket, token, framing), `session.go` (the hypermeow client and link state), `db.go` (migrations), `store.go` (events to rows, one writer), `send.go`, `media.go`, `voice*.go` (WAV <-> OGG Opus, libopus through cgo, Ogg pages in Go), `notifier.go`/`hub*.go` (Hub account), `sim*.go` (the simulated account). The handshake with the UI is in [02-architecture.md](02-architecture.md) §3.
 
-## Sources
+## Samples
 
-- `hyperberry/docker/Dockerfile`, `hyperberry/engine/go.mod`
-- `hyperberry/scripts/build-engine.sh`, `test-engine.sh`, `hypermeow-work.sh`, `push-engine.sh`
-- `hyperberry/engine/roots.go`, `hyperberry/engine/navigator_qnx.go`, `hyperberry/engine/*_qnx.go`
-- `hyperberry/docs/plan/pitfalls.md`, `phase0.md`, `design.md` (§3, §6, §8), `phase6.md`, `phase7.md`, `translate.md`
-- `hyperberry/PLAN.md` (§2, §12), `bbmusic/PLAN.md` (§3), `tengram/NOTES.md`, `rlimit-patch/README.md`
-- [whatsapp-light](https://github.com/vbbot/whatsapp-light): the `meowcaller/*.patch` fixes applied first in `hypermeow-work.sh`
+- [samples/docker/Dockerfile.go](../samples/docker/Dockerfile.go)
+- [samples/engine-go/go.mod](../samples/engine-go/go.mod)
+- [samples/engine-go/build-engine.sh](../samples/engine-go/build-engine.sh)
+- [samples/engine-go/roots.go](../samples/engine-go/roots.go)
+- [samples/engine-go/navigator_qnx.go](../samples/engine-go/navigator_qnx.go)
+- [samples/engine-go/test-engine.sh](../samples/engine-go/test-engine.sh)
+- [samples/engine-go/patch-deps-work.sh](../samples/engine-go/patch-deps-work.sh)
+- [samples/phone/push-engine.sh](../samples/phone/push-engine.sh)
+
+`samples/engine-go/patch-deps-work.sh` is `hypermeow-work.sh` in HyperBerry (section 5). [whatsapp-light](https://github.com/vbbot/whatsapp-light): the `meowcaller/*.patch` fixes are applied first in it.

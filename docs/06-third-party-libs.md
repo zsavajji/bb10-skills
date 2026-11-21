@@ -6,7 +6,7 @@ Compilers and images: [03-toolchains.md](03-toolchains.md). Linking engines (lin
 
 ## 1. The general recipe
 
-1. **Pin every download by sha256.** In a Dockerfile: `ADD --checksum=sha256:<hash> <url> /tmp/x.tar.gz`. In a script: a `fetch()` that downloads to `<dest>.tmp`, compares the hash, and only then moves it into place (`phoenix/scripts/fetch-third-party.sh`):
+1. **Pin every download by sha256.** In a Dockerfile: `ADD --checksum=sha256:<hash> <url> /tmp/x.tar.gz`. In a script: a `fetch()` that downloads to `<dest>.tmp`, compares the hash, and only then moves it into place ([samples/engine-cxx20/scripts/fetch-third-party.sh](../samples/engine-cxx20/scripts/fetch-third-party.sh)):
 
 ```sh
 sha() { if command -v sha256sum >/dev/null; then sha256sum "$1"; else shasum -a 256 "$1"; fi | cut -d' ' -f1; }
@@ -25,15 +25,15 @@ fetch() {  # dir url sha file
 }
 ```
 
-   macOS's `sha256sum -c` takes no `--status` and fails on stdin: the repo's fetch scripts compare the hash by hand (`hyperberry/scripts/fetch-libwebp.sh`). A multi-file tree (libwebp) writes a `.sha256` stamp **last**, so a half-extracted tree is fetched again.
+   macOS's `sha256sum -c` takes no `--status` and fails on stdin: the repo's fetch scripts compare the hash by hand ([samples/third-party/fetch-libwebp.sh](../samples/third-party/fetch-libwebp.sh)). A multi-file tree (libwebp) writes a `.sha256` stamp **last**, so a half-extracted tree is fetched again.
 2. **Build static**, install into **`/opt/<app>`** inside the app's build image (`/opt/phoenix`, `/opt/bbmusic`), and link by full path. Engine libraries are fetched at image build time; sources the app compiles itself are fetched into `engine/third_party/` or `lib/`.
-3. **Fetched sources are git-ignored, not committed** (`phoenix/.gitignore`, `bbmusic/.gitignore`, `hyperberry/.gitignore`, `tengram/.gitignore`). Reason recorded: files over the repo's 500-line rule, licenses, size (`hyperberry/scripts/fetch-qrcodegen.sh`).
-4. **Chain Docker build steps with `&&`**: under `;` an early failure went unnoticed (`hyperberry/docs/plan/pitfalls.md` 0.8). Several Dockerfiles also end a block with a grep or `nm` that proves the result (the `libcurl` blocks grep `CMakeCache.txt`; OpenSSL greps `nm` for the NEON symbol).
+3. **Fetched sources are git-ignored, not committed** ([samples/engine-cxx20/gitignore](../samples/engine-cxx20/gitignore), the other apps' `.gitignore`, HyperBerry's and Tengram's). Reason recorded: files over the repo's 500-line rule, licenses, size ([samples/third-party/fetch-qrcodegen.sh](../samples/third-party/fetch-qrcodegen.sh)).
+4. **Chain Docker build steps with `&&`**: under `;` an early failure went unnoticed (HyperBerry's pitfalls notes 0.8). Several Dockerfiles also end a block with a grep or `nm` that proves the result (the `libcurl` blocks grep `CMakeCache.txt`; OpenSSL greps `nm` for the NEON symbol).
 5. **Patches**: keep them in `patches/<lib>/*.patch`, apply them to the **extracted** tarball (not to your tree), and make a patch that no longer applies **stop the build** (Tengram's `apply_patches`: applied, already applied (reverse applies), or the series is broken; Go: `patch --fuzz=0`, [05-engine-go.md](05-engine-go.md)).
 6. **CMake libraries**: `-DCMAKE_TOOLCHAIN_FILE=$TC` with `TC=/opt/bb10-cxx20/share/bb10-cxx20.cmake`.
-7. **Autotools libraries**: `./configure --host=arm-unknown-nto-qnx6.5.0eabi CC=bb10-clang` and, for C++ code, `CXX=bb10-clang++ ac_cv_prog_cxx_cxx11=` (empty). Why: Autoconf's C++11 probe assigns a `u8""` literal to `const char *`, which fails under C++20's `char8_t`; it then appends `-std=gnu++11` to `CXX`. An empty value means "none needed" (`bb10-cxx20/README.md`).
+7. **Autotools libraries**: `./configure --host=arm-unknown-nto-qnx6.5.0eabi CC=bb10-clang` and, for C++ code, `CXX=bb10-clang++ ac_cv_prog_cxx_cxx11=` (empty). Why: Autoconf's C++11 probe assigns a `u8""` literal to `const char *`, which fails under C++20's `char8_t`; it then appends `-std=gnu++11` to `CXX`. An empty value means "none needed" ([bb10-cxx20](https://github.com/zsavajji/bb10-cxx20)'s README).
 8. **NEON is fixed at configure time**: every BB10 CPU has NEON and QNX has no runtime CPU detection, so build with `-mfpu=neon` and turn runtime detection off where the library has the switch.
-9. **Never link the SDK's old libssl/libcrypto** (OpenSSL 1.0.x, in the default search path) when you ship your own: pass full paths to your `.a` files (`tengram/scripts/build-deps.sh`: "Explicit paths to our .a files: the SDK has its own, older libssl/libcrypto in the default search path").
+9. **Never link the SDK's old libssl/libcrypto** (OpenSSL 1.0.x, in the default search path) when you ship your own: pass full paths to your `.a` files ([samples/third-party/build-deps.sh](../samples/third-party/build-deps.sh): "Explicit paths to our .a files: the SDK has its own, older libssl/libcrypto in the default search path").
 
 ## 2. OpenSSL 3.5.7 with ARM assembly (phoenix, tengram)
 
@@ -48,7 +48,7 @@ Configure target **`linux-armv4`** (turns the assembly on: QNX has no target of 
 
 ### The REQUIRED `armcap` patch
 
-Without it the library dies on start. OpenSSL finds the CPU's extensions in `OPENSSL_cpuid_setup` (`crypto/armcap.c`) by running one instruction of each and catching SIGILL. **On BB10 those probes leave the thread without an FPU: its next VFP instruction dies with SIGFPE (`FPE_NOFPU`).** The patch adds a `__QNX__` branch before the probes that sets the mask and returns (the same as OpenSSL does for 32-bit iOS). `phoenix/docker/patches/openssl-0001-qnx-armcap.patch` and `tengram/patches/openssl/0001-qnx-armcap.patch` are identical:
+Without it the library dies on start. OpenSSL finds the CPU's extensions in `OPENSSL_cpuid_setup` (`crypto/armcap.c`) by running one instruction of each and catching SIGILL. **On BB10 those probes leave the thread without an FPU: its next VFP instruction dies with SIGFPE (`FPE_NOFPU`).** The patch adds a `__QNX__` branch before the probes that sets the mask and returns (the same as OpenSSL does for 32-bit iOS). [samples/docker/patches/openssl-0001-qnx-armcap.patch](../samples/docker/patches/openssl-0001-qnx-armcap.patch) and Tengram's own copy of that patch are identical:
 
 ```diff
 # BB10: no SIGILL probing of CPU features (it leaves the thread without an FPU: SIGFPE at the next VFP instruction); NEON is on every BB10 phone.
@@ -75,7 +75,7 @@ Without it the library dies on start. OpenSSL finds the CPU's extensions in `OPE
      /*
 ```
 
-With the mask at `ARMV7_NEON` the NEON paths run: bit-sliced AES (`bsaes-armv7.S`), SHA-1/256/512 `_neon` entries, `armv4-mont.S` bignum, `ghash-armv4.S` GCM, ChaCha20/Poly1305, SHA-3, P-256. The ARMv8 files (`aesv8-armx.S`, `ghashv8-armx.S`) are compiled in and never taken. `armcap.c` reads the `OPENSSL_armcap` environment variable before the patch's branch, so `OPENSSL_armcap=0` runs the same binary on the ARM code without NEON; for the pure C code, Configure with `linux-generic32` (`tengram/docs/openssl-arm-asm.md`).
+With the mask at `ARMV7_NEON` the NEON paths run: bit-sliced AES (`bsaes-armv7.S`), SHA-1/256/512 `_neon` entries, `armv4-mont.S` bignum, `ghash-armv4.S` GCM, ChaCha20/Poly1305, SHA-3, P-256. The ARMv8 files (`aesv8-armx.S`, `ghashv8-armx.S`) are compiled in and never taken. `armcap.c` reads the `OPENSSL_armcap` environment variable before the patch's branch, so `OPENSSL_armcap=0` runs the same binary on the ARM code without NEON; for the pure C code, Configure with `linux-generic32` (Tengram's OpenSSL ARM notes).
 
 Measured on the phone, `cryptobench`, C build against the assembly build (2026-11-16; the tool is not in the repo; Tengram's doc says "on the phone", the model is not named):
 
@@ -92,9 +92,9 @@ The build is right when this prints symbols:
 nm build/prefix/lib/libcrypto.a | grep -E 'sha256_block_data_order_neon|bn_mul8x_mont_neon|ossl_bsaes_ctr32'
 ```
 
-(`phoenix/docker/Dockerfile` ends its block with `$BINUTILS-nm $PHX/lib/libcrypto.a | grep -q sha256_block_data_order_neon` so a build without the assembly fails.)
+([samples/docker/Dockerfile.openssl-curl](../samples/docker/Dockerfile.openssl-curl) ends its block with `$BINUTILS-nm $PHX/lib/libcrypto.a | grep -q sha256_block_data_order_neon` so a build without the assembly fails.)
 
-### The Dockerfile block, verbatim (`phoenix/docker/Dockerfile`)
+### The Dockerfile block, verbatim ([samples/docker/Dockerfile.openssl-curl](../samples/docker/Dockerfile.openssl-curl))
 
 ```dockerfile
 FROM bb10-cxx20:latest
@@ -125,19 +125,19 @@ RUN cd /tmp && tar xzf openssl.tar.gz && cd openssl-3.5.7 \
 
 | App | TLS library | Reason recorded |
 |---|---|---|
-| bbmusic | **wolfSSL 5.9.4**, static, client-only: TLS 1.3 and 1.2, a few hundred KB, a supported libcurl backend, GPL (compatible with the project's GPLv3). OpenSSL 3 "would also work and is the fallback if wolfSSL misbehaves on QNX 6.6, at several times the size" | `bbmusic/PLAN.md` §3 "TLS and HTTP" |
-| phoenix | OpenSSL 3.5.7 with ARM assembly | `phoenix/docker/Dockerfile` |
-| tengram | OpenSSL 3.5.7 with ARM assembly (TDLib needs it) | `tengram/scripts/build-deps.sh` |
+| bbmusic | **wolfSSL 5.9.4**, static, client-only: TLS 1.3 and 1.2, a few hundred KB, a supported libcurl backend, GPL (compatible with the project's GPLv3). OpenSSL 3 "would also work and is the fallback if wolfSSL misbehaves on QNX 6.6, at several times the size" | BBMusic's plan §3 "TLS and HTTP" |
+| phoenix | OpenSSL 3.5.7 with ARM assembly | [samples/docker/Dockerfile.openssl-curl](../samples/docker/Dockerfile.openssl-curl) |
+| tengram | OpenSSL 3.5.7 with ARM assembly (TDLib needs it) | [samples/third-party/build-deps.sh](../samples/third-party/build-deps.sh) |
 | hyperberry | Go's own TLS (1.3, current roots) | [05-engine-go.md](05-engine-go.md) |
 
 bbmusic gate 0.3 proved TLS 1.3 by wolfSSL on the phone (Q10, 2026-11-14: `http 200` to `music.youtube.com`, 1.88 s, TLS 1.3 forced with `CURLOPT_SSLVERSION`).
 
-- **The phone's CA store is too old** (2013 per bbmusic's plan; "a CA store from 2018" per HyperBerry's pitfalls). Ship **Mozilla's `cacert.pem`** as a bundle fetched at build time (`curl -fsSL https://curl.se/ca/cacert.pem -o app/assets/cacert.pem`, in `phoenix/scripts/build-app.sh`; not committed: `app/assets/cacert.pem` is in `.gitignore`). It lands at `app/native/assets/cacert.pem` and the engine hands it to curl: `http_set_ca_file("app/native/assets/cacert.pem")` under `#ifdef __QNX__`, which sets `CURLOPT_CAINFO`.
+- **The phone's CA store is too old** (2013 per bbmusic's plan; "a CA store from 2018" per HyperBerry's pitfalls). Ship **Mozilla's `cacert.pem`** as a bundle fetched at build time (`curl -fsSL https://curl.se/ca/cacert.pem -o app/assets/cacert.pem`, in [samples/ui/scripts/build-app.sh](../samples/ui/scripts/build-app.sh); not committed: `app/assets/cacert.pem` is in `.gitignore`). It lands at `app/native/assets/cacert.pem` and the engine hands it to curl: `http_set_ca_file("app/native/assets/cacert.pem")` under `#ifdef __QNX__`, which sets `CURLOPT_CAINFO`.
 - curl is built with **`-DCURL_CA_BUNDLE=none -DCURL_CA_PATH=none`**: no CA path is compiled in.
-- `bbmusic/PLAN.md` §3 says the bundle is "compiled in and handed to curl as a blob"; the code (`bbmusic/engine/src/main.cpp`, `bbmusic/scripts/build-app.sh`) ships it as an asset file read at run time. The code is newer and wins.
+- BBMusic's plan §3 says the bundle is "compiled in and handed to curl as a blob"; the code ([samples/engine-cxx20/main-headless.cpp](../samples/engine-cxx20/main-headless.cpp), BBMusic's build-app script) ships it as an asset file read at run time. The code is newer and wins.
 - **Never link the SDK's old libssl** with curl: the curl build passes full paths (`-DOPENSSL_SSL_LIBRARY=$PHX/lib/libssl.a`, ...) and the Dockerfile greps `CMakeCache.txt` to prove it (shown in the next block).
 
-## 4. libcurl 8.23.0, minimal build (verbatim, `phoenix/docker/Dockerfile`)
+## 4. libcurl 8.23.0, minimal build (verbatim, [samples/docker/Dockerfile.openssl-curl](../samples/docker/Dockerfile.openssl-curl))
 
 HTTP and HTTPS only; OpenSSL backend (the one above); the SDK's zlib for gzip.
 
@@ -165,10 +165,10 @@ RUN cd /tmp && tar xzf curl.tar.gz \
 	&& cd / && rm -rf /tmp/curl*
 ```
 
-- curl's CMake build has **no `HTTP_ONLY`** any more: each protocol is switched off by its own `CURL_DISABLE_*` (`bbmusic/docs/plan/phase0.md` gate 0.3). The list above is that list.
+- curl's CMake build has **no `HTTP_ONLY`** any more: each protocol is switched off by its own `CURL_DISABLE_*` (BBMusic's phase 0 notes gate 0.3). The list above is that list.
 - Engine link order and `CURL_STATICLIB`: [04-engine-cxx20.md](04-engine-cxx20.md) §4.
 
-### wolfSSL block (verbatim, `bbmusic/docker/Dockerfile`)
+### wolfSSL block (verbatim, [samples/docker/Dockerfile.wolfssl-curl-opus](../samples/docker/Dockerfile.wolfssl-curl-opus))
 
 ```dockerfile
 ADD --checksum=sha256:7256bfc89b183a75183806c7debfa203443873b0b4a562e1b80d68e01b45ac57 \
@@ -185,7 +185,7 @@ bbmusic's curl block is the same as above with `-DWOLFSSL_INCLUDE_DIR=$BBM/inclu
 
 ## 5. libopus 1.6.1
 
-Pinned `sha256:6ffcb593207be92584df15b32466ed64bbec99109f007c82205f0194572411a1`, `https://downloads.xiph.org/releases/opus/opus-1.6.1.tar.gz`. **`--disable-rtcd` and `CFLAGS="-O2 -mfpu=neon"`**: QNX has no runtime CPU detection; "without the flag the ARM build doesn't compile" (`hyperberry/docs/plan/phase0.md` 0.8, `pitfalls.md`). From `bbmusic/docker/Dockerfile`:
+Pinned `sha256:6ffcb593207be92584df15b32466ed64bbec99109f007c82205f0194572411a1`, `https://downloads.xiph.org/releases/opus/opus-1.6.1.tar.gz`. **`--disable-rtcd` and `CFLAGS="-O2 -mfpu=neon"`**: QNX has no runtime CPU detection; "without the flag the ARM build doesn't compile" (HyperBerry's phase 0 notes 0.8, `pitfalls.md`). From [samples/docker/Dockerfile.wolfssl-curl-opus](../samples/docker/Dockerfile.wolfssl-curl-opus):
 
 ```dockerfile
 RUN cd /tmp && tar xzf opus.tar.gz && cd opus-1.6.1 \
@@ -195,41 +195,41 @@ RUN cd /tmp && tar xzf opus.tar.gz && cd opus-1.6.1 \
 	&& cd / && rm -rf /tmp/opus*
 ```
 
-- **hyperberry builds it twice** (`hyperberry/docker/Dockerfile`): once for BB10 into the SDK sysroot (`--prefix=$T/armle-v7/usr --includedir=$T/usr/include`, `T=/opt/bb10-sdk/target/qnx6`, so `bb10-clang` finds it), then `make distclean`, then again on the host (`CC=cc`, prefix `/usr/local`) for the PC tests. Both install headers as `<opus/opus.h>`.
-- **tengram** adds `--enable-fixed-point` (`OPUS_CONFIGURE_FLAGS` in `tengram/scripts/build-deps.sh`) and installs into `build/prefix`.
+- **hyperberry builds it twice** ([samples/docker/Dockerfile.go](../samples/docker/Dockerfile.go)): once for BB10 into the SDK sysroot (`--prefix=$T/armle-v7/usr --includedir=$T/usr/include`, `T=/opt/bb10-sdk/target/qnx6`, so `bb10-clang` finds it), then `make distclean`, then again on the host (`CC=cc`, prefix `/usr/local`) for the PC tests. Both install headers as `<opus/opus.h>`.
+- **tengram** adds `--enable-fixed-point` (`OPUS_CONFIGURE_FLAGS` in [samples/third-party/build-deps.sh](../samples/third-party/build-deps.sh)) and installs into `build/prefix`.
 - The speed: encode at 0.117 of real time on the Q10 (HyperBerry gate 0.8); decode alone 78x real time flat out (bbmusic gate 0.4).
 
 ## 6. libwebp 1.4.0 (decoder only)
 
 `https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.4.0.tar.gz`, `sha256:61f873ec69e3be1b99535634340d5bde750b2e4447caa1db9f61be3fd49ab1e5`, unpacked whole; the build picks the files of its `makefile.unix` `DEC_OBJS`, `DSP_DEC_OBJS`, `UTILS_DEC_OBJS` plus the demuxer. No encoder, no sharpyuv; threads off (no `WEBP_USE_THREAD`).
 
-- **In an engine via CMake** (`phoenix/engine/CMakeLists.txt`): a `webp` static library from those files, `-w`, with **`-mfpu=neon`** on BB10. "BB10: every CPU has NEON, and QNX has no runtime detection; without `HAVE_CONFIG_H`, `dsp/cpu.h` turns `WEBP_USE_NEON` on when the compiler defines `__ARM_NEON__` (what `-mfpu=neon` does) and `cpu.c`'s `armCPUInfo` then answers 'yes' to `kNEON` on any OS but Linux's RTCD." The SSE/MIPS/MSA files compile to empty stubs on another CPU.
-- **Inside the qcc UI via the `.pro` file lists** (`hyperberry/app/hyperberry.pro`, `tengram/app/tengram.pro`): `WEBP_DEC`, `WEBP_DSP`, `WEBP_UTILS` plus `src/demux/demux.c` and `anim_decode.c`, with `INCLUDEPATH += $$WEBP_DIR $$WEBP_DIR/src`. **qcc passes `-mcpu=cortex-a9` and no `-mfpu=neon`, so `__ARM_NEON__` is unset and the NEON, SSE and MIPS files compile to empty stubs: the plain C code decodes.** Left as `# ponytail: add -mfpu=neon to QMAKE_CFLAGS if a sticker takes long to draw; untried.` The fetch scripts: `hyperberry/scripts/fetch-libwebp.sh`, `tengram/scripts/fetch-libwebp.sh`.
+- **In an engine via CMake** ([samples/engine-cxx20/CMakeLists.txt](../samples/engine-cxx20/CMakeLists.txt)): a `webp` static library from those files, `-w`, with **`-mfpu=neon`** on BB10. "BB10: every CPU has NEON, and QNX has no runtime detection; without `HAVE_CONFIG_H`, `dsp/cpu.h` turns `WEBP_USE_NEON` on when the compiler defines `__ARM_NEON__` (what `-mfpu=neon` does) and `cpu.c`'s `armCPUInfo` then answers 'yes' to `kNEON` on any OS but Linux's RTCD." The SSE/MIPS/MSA files compile to empty stubs on another CPU.
+- **Inside the qcc UI via the `.pro` file lists** (HyperBerry's `.pro`, [samples/ui/app-gcc483.pro](../samples/ui/app-gcc483.pro)): `WEBP_DEC`, `WEBP_DSP`, `WEBP_UTILS` plus `src/demux/demux.c` and `anim_decode.c`, with `INCLUDEPATH += $$WEBP_DIR $$WEBP_DIR/src`. **qcc passes `-mcpu=cortex-a9` and no `-mfpu=neon`, so `__ARM_NEON__` is unset and the NEON, SSE and MIPS files compile to empty stubs: the plain C code decodes.** Left as `# ponytail: add -mfpu=neon to QMAKE_CFLAGS if a sticker takes long to draw; untried.` The fetch scripts: [samples/third-party/fetch-libwebp.sh](../samples/third-party/fetch-libwebp.sh).
 
 ## 7. Single-file and header-only pieces
 
 | Library | How | Source |
 |---|---|---|
-| **yyjson 0.13.0** (JSON) | two files fetched from `raw.githubusercontent.com/ibireme/yyjson/0.13.0/src`, pinned by sha256 each, into `engine/third_party/yyjson/`; compiled with `-w` inside the `util` module | `phoenix/scripts/fetch-third-party.sh`, `phoenix/engine/CMakeLists.txt` |
-| **qrcodegen** (Nayuki, C, MIT) | commit of release v1.8.0, sha256-pinned, into `lib/qrcodegen/`; compiled by the UI's `.pro` (`tengram`: `-std=gnu99`) | `hyperberry/scripts/fetch-qrcodegen.sh` |
-| **OpenMAX IL headers** (Khronos 1.1.2 as AOSP carries them, nine headers) | fetched pinned; **only headers**: "the phone's `libOmxCore.so` is `dlopen()`ed, so nothing links" (`/base/lib/libOmxCore.so`) | `hyperberry/scripts/fetch-omxil.sh`, `.pro` comment |
-| **rlottie** (Telegram Desktop's fork, `cbfdcdd...`) | built by **clang** into **`libtgs.so`**, which exports **rlottie's C API only** (`tests/tgs.map`) with libc++ static inside, shipped in the bar's `native/lib`; the qcc UI calls it as plain C. Options: no image-loader plugin, no render thread, no cache; NEON on (`-mfpu=neon`); pixman's NEON asm assembled apart with the armnto GNU `as` (clang's assembler rejects its macros); `LOT_BUILD` makes the C API visible in a static build; Samsung's rlottie was left out because it dropped parts of stickers. A program started over ssh cannot map a library outside the system's trusted file system (mmap EPERM, even after `pathtrust`), while a bar's `native/lib` loads | `tengram/scripts/build-tgs.sh` |
-| **Noto Color Emoji** (Google; font reduced by `build-emoji-font.py`) | fetched pinned to a release commit, derived font kept out of the repo | `hyperberry/scripts/fetch-emoji.sh` (UI topic: [07-ui-build.md](07-ui-build.md)) |
+| **yyjson 0.13.0** (JSON) | two files fetched from `raw.githubusercontent.com/ibireme/yyjson/0.13.0/src`, pinned by sha256 each, into `engine/third_party/yyjson/`; compiled with `-w` inside the `util` module | [samples/engine-cxx20/scripts/fetch-third-party.sh](../samples/engine-cxx20/scripts/fetch-third-party.sh), [samples/engine-cxx20/CMakeLists.txt](../samples/engine-cxx20/CMakeLists.txt) |
+| **qrcodegen** (Nayuki, C, MIT) | commit of release v1.8.0, sha256-pinned, into `lib/qrcodegen/`; compiled by the UI's `.pro` (`tengram`: `-std=gnu99`) | [samples/third-party/fetch-qrcodegen.sh](../samples/third-party/fetch-qrcodegen.sh) |
+| **OpenMAX IL headers** (Khronos 1.1.2 as AOSP carries them, nine headers) | fetched pinned; **only headers**: "the phone's `libOmxCore.so` is `dlopen()`ed, so nothing links" (`/base/lib/libOmxCore.so`) | [samples/video/fetch-omxil.sh](../samples/video/fetch-omxil.sh), `.pro` comment |
+| **rlottie** (Telegram Desktop's fork, `cbfdcdd...`) | built by **clang** into **`libtgs.so`**, which exports **rlottie's C API only** (`tests/tgs.map`) with libc++ static inside, shipped in the bar's `native/lib`; the qcc UI calls it as plain C. Options: no image-loader plugin, no render thread, no cache; NEON on (`-mfpu=neon`); pixman's NEON asm assembled apart with the armnto GNU `as` (clang's assembler rejects its macros); `LOT_BUILD` makes the C API visible in a static build; Samsung's rlottie was left out because it dropped parts of stickers. A program started over ssh cannot map a library outside the system's trusted file system (mmap EPERM, even after `pathtrust`), while a bar's `native/lib` loads | [samples/third-party/build-tgs.sh](../samples/third-party/build-tgs.sh) |
+| **Noto Color Emoji** (Google; font reduced by `build-emoji-font.py`) | fetched pinned to a release commit, derived font kept out of the repo | [samples/third-party/fetch-emoji.sh](../samples/third-party/fetch-emoji.sh) (UI topic: [07-ui-build.md](07-ui-build.md)) |
 | **Mozilla `cacert.pem`** | section 3 | |
 
 ## 8. A static libcrypto inside the UI process (tengram)
 
-Tengram's UI links a clang-built static OpenSSL (`libcrypto.a`, from the same `build/prefix`) for SQLCipher. Traps recorded in `tengram/app/tengram.pro`:
+Tengram's UI links a clang-built static OpenSSL (`libcrypto.a`, from the same `build/prefix`) for SQLCipher. Traps recorded in [samples/ui/app-gcc483.pro](../samples/ui/app-gcc483.pro):
 
 - **`QMAKE_LFLAGS += -Wl,--exclude-libs,ALL`**: "Nothing of the static libcrypto may show in the executable's dynamic symbols: a system library that uses the phone's own OpenSSL 1.0 (QtNetwork, say) would bind to ours, 3.5, and crash."
 - A clang-built `libcrypto.a` needs the **`__aeabi_mem*` helpers** (`ui/sqlcipher/aeabi_mem.c`, compiled into the UI) and **`-lsocket`**: `LIBS += $$PWD/../build/prefix/lib/libcrypto.a -lsocket`.
 - `QMAKE_LFLAGS += -Wl,--gc-sections`; `QMAKE_CFLAGS_WARN_ON = -w` silences the C libraries' warnings, the C++ ones stay on.
 
-### SQLCipher via Qt's SQLite driver, renamed (`tengram/scripts/fetch-qtsqlcipher.sh`)
+### SQLCipher via Qt's SQLite driver, renamed ([samples/third-party/fetch-qtsqlcipher.sh](../samples/third-party/fetch-qtsqlcipher.sh))
 
 The phone's QtSql already registers a `QSQLiteDriver`, so a second driver of the same name would clash. The script fetches Qt **4.8.6**'s `qsql_sqlite.cpp` and `.h` from `raw.githubusercontent.com/qt/qt/v4.8.6/src/sql/drivers/sqlite/` (sha256-pinned), and `sed`-renames `QSQLite` to `QSQLCipher`, pointing the include at `tdsqlite_names.h` instead of `<sqlite3.h>`; output `lib/qtsqlcipher/qsql_sqlcipher.cpp/.h`, not committed. The UI compiles that with **TDLib's own SQLCipher amalgamation** (`third_party/td/sqlite/sqlite/sqlite3.c`) and TDLib's own flags (`OMIT_MEMLOCK SQLITE_DEFAULT_MEMSTATUS=0 ... SQLITE_HAS_CODEC ... USE_PREAD=1`), **without `SQLITE_OMIT_DECLTYPE`** because Qt's driver asks for declared column types. It needs `gnu99` (see [03-toolchains.md](03-toolchains.md) §3.2). `ui/sqlcipher/` holds the spike and its test (`scripts/build-qtsqlcipher-test.sh`).
 
-## 9. TDLib / TDLight, the heavy case (`tengram/scripts/build-deps.sh`)
+## 9. TDLib / TDLight, the heavy case ([samples/third-party/build-deps.sh](../samples/third-party/build-deps.sh))
 
 Cross-builds **TDLight** (TDLib plus a few options), **OpenSSL** and **libopus** as static libraries into `build/prefix`; about **12 minutes**, "idempotent, stamped".
 
@@ -238,7 +238,7 @@ Structure:
 1. **Host side (the Mac)**: `fetch_td` clones the repo at a **pinned commit** (`TD_REPO` default `https://github.com/tdlight-team/tdlight`, `TD_COMMIT` default `ccf8956e63d29074009867859ecad251c75f36e1`; override both to build stock TDLib); `apply_patches` applies `patches/td/*.patch` with `git apply` (already applied = reverse applies; otherwise the build fails loudly: "TDLight moved? Rebase the patch."); `fetch_openssl`, `fetch_opus` download and **check sha256**.
 2. **Container side**: the same script re-run inside `tengram-build` as `build-deps.sh --in-container <function>` (`build_openssl_in_container`, `build_opus_in_container`, `build_td_in_container`, `verify_in_container`, `link_test_in_container`).
 3. **TDLib in two passes**: pass 1 on the **host compiler** (`CC=clang CXX=clang++`, host libssl/zlib from the image's `-dev` packages) builds the target `prepare_cross_compiling`, which writes the generated sources (`td/generate/auto`) into the source tree; pass 2 is the **BB10 cross build** with `-DCMAKE_TOOLCHAIN_FILE=$BB10_CXX20/share/bb10-cxx20.cmake`, `-DTD_ENABLE_LTO="$TD_LTO"`, our OpenSSL by path (`-DOPENSSL_FOUND=1 -DOPENSSL_INCLUDE_DIR ... -DOPENSSL_CRYPTO_LIBRARY ... -DOPENSSL_SSL_LIBRARY`), the SDK's zlib, `-DTD_SKIP_TEST=ON -DTD_SKIP_BENCHMARK=ON -DTD_INSTALL_SHARED_LIBRARIES=OFF`; target `tdclient` only (`cmake --install` is not used because it wants the JSON interface). `td_api.h/.hpp` are copied from the host pass's output.
-4. **Patches** (`tengram/patches/`), each file starting with a `#` comment line saying why:
+4. **Patches** (Tengram's patches), each file starting with a `#` comment line saying why:
 
 | Patch | Why |
 |---|---|
@@ -255,17 +255,30 @@ Structure:
 6. **Switches**: `FORCE_REBUILD=1`; `JOBS=2` if the `td_api` translation units (over 1 GB of RAM each) get OOM-killed; `TD_LTO=ON` (default) needs a bb10-cxx20 with the linker plugin, else `TD_LTO=OFF`; `TD_BUILD_TYPE=Release` (-O2; `MinSizeRel` -Os is "about a tenth smaller and slower"); `BASE_IMAGE` (default `bb10-cxx20:emutls-lto`).
 7. **Verify and link test**: every member of every `.a` must be ARM (`readelf -h`; with LTO the archives hold bitcode, which readelf does not read, so the link test proves the target), then a `main()` using `td::ClientManager` is linked against explicit `.a` paths (not run: "no phone here").
 
-**`tengram/scripts/build-calls.sh`** in a few lines: fetches **tg_owt** and **tgcalls** at the pair Telegram Desktop builds (pinned commits, `git clone` + `checkout`, submodules for tg_owt), applies `patches/tg_owt` and `patches/tgcalls` with the same applied/reverse/broken test, builds with `calls/CMakeLists.txt` (Telegram Desktop's source list without desktop capture, group calls (need ffmpeg) and other platforms; `calls/QnxInterface.cpp` is ours; software video codecs left out, so libvpx, openh264, ffmpeg and libjpeg are not needed; their include paths point at an empty folder) in `-O2`, copies `libtgcalls.a` and `libtg_owt.a` to `build/prefix/lib/`, writes the defines and includes a program needs to `build/prefix/calls.flags`, and links and strips `tests/calls_check`, the on-phone check. It needs `build-deps.sh` first.
+**[samples/third-party/build-calls.sh](../samples/third-party/build-calls.sh)** in a few lines: fetches **tg_owt** and **tgcalls** at the pair Telegram Desktop builds (pinned commits, `git clone` + `checkout`, submodules for tg_owt), applies `patches/tg_owt` and `patches/tgcalls` with the same applied/reverse/broken test, builds with `calls/CMakeLists.txt` (Telegram Desktop's source list without desktop capture, group calls (need ffmpeg) and other platforms; `calls/QnxInterface.cpp` is ours; software video codecs left out, so libvpx, openh264, ffmpeg and libjpeg are not needed; their include paths point at an empty folder) in `-O2`, copies `libtgcalls.a` and `libtg_owt.a` to `build/prefix/lib/`, writes the defines and includes a program needs to `build/prefix/calls.flags`, and links and strips `tests/calls_check`, the on-phone check. It needs `build-deps.sh` first.
 
 ## 10. Go dependencies
 
 Patching them without forking: [05-engine-go.md](05-engine-go.md) §5.
 
-## Sources
+## Samples
 
-- `phoenix/docker/Dockerfile`, `phoenix/docker/patches/openssl-0001-qnx-armcap.patch`, `phoenix/scripts/fetch-third-party.sh`, `phoenix/scripts/build-app.sh`, `phoenix/engine/CMakeLists.txt`, `phoenix/engine/src/main.cpp`
-- `bbmusic/docker/Dockerfile`, `bbmusic/PLAN.md` (§3), `bbmusic/docs/plan/phase0.md`, `bbmusic/engine/src/main.cpp`
-- `tengram/docs/openssl-arm-asm.md`, `tengram/patches/` (`td`, `openssl`, `tg_owt`, `tgcalls`), `tengram/scripts/build-deps.sh`, `build-tgs.sh`, `build-calls.sh`, `fetch-qtsqlcipher.sh`, `fetch-libwebp.sh`, `tengram/app/tengram.pro`, `tengram/calls/CMakeLists.txt`
-- `hyperberry/docker/Dockerfile`, `hyperberry/app/hyperberry.pro`, `hyperberry/scripts/fetch-libwebp.sh`, `fetch-omxil.sh`, `fetch-qrcodegen.sh`, `fetch-emoji.sh`
-- `hyperberry/docs/plan/phase0.md`, `hyperberry/docs/plan/pitfalls.md`
-- `bb10-cxx20/README.md`
+- [samples/docker/Dockerfile.openssl-curl](../samples/docker/Dockerfile.openssl-curl)
+- [samples/docker/patches/openssl-0001-qnx-armcap.patch](../samples/docker/patches/openssl-0001-qnx-armcap.patch)
+- [samples/engine-cxx20/scripts/fetch-third-party.sh](../samples/engine-cxx20/scripts/fetch-third-party.sh)
+- [samples/ui/scripts/build-app.sh](../samples/ui/scripts/build-app.sh)
+- [samples/engine-cxx20/CMakeLists.txt](../samples/engine-cxx20/CMakeLists.txt)
+- [samples/engine-cxx20/main-child.cpp](../samples/engine-cxx20/main-child.cpp)
+- [samples/docker/Dockerfile.wolfssl-curl-opus](../samples/docker/Dockerfile.wolfssl-curl-opus)
+- [samples/engine-cxx20/main-headless.cpp](../samples/engine-cxx20/main-headless.cpp)
+- [samples/third-party/build-deps.sh](../samples/third-party/build-deps.sh)
+- [samples/ui/app-gcc483.pro](../samples/ui/app-gcc483.pro)
+- [samples/docker/Dockerfile.go](../samples/docker/Dockerfile.go)
+- [samples/third-party/fetch-libwebp.sh](../samples/third-party/fetch-libwebp.sh)
+- [samples/third-party/build-tgs.sh](../samples/third-party/build-tgs.sh)
+- [samples/third-party/build-calls.sh](../samples/third-party/build-calls.sh)
+- [samples/third-party/fetch-qtsqlcipher.sh](../samples/third-party/fetch-qtsqlcipher.sh)
+- [samples/video/fetch-omxil.sh](../samples/video/fetch-omxil.sh)
+- [samples/third-party/fetch-qrcodegen.sh](../samples/third-party/fetch-qrcodegen.sh)
+- [samples/third-party/fetch-emoji.sh](../samples/third-party/fetch-emoji.sh)
+- [samples/third-party/patches/td/](../samples/third-party/patches/td/)

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<qnx xmlns="http://www.qnx.com/schemas/application/1.0">
+    <id>com.zsavajji.phoenix</id>
+    <name>Phoenix for Reddit</name>
+    <versionNumber>1.0.0</versionNumber>
+    <!-- Overwritten at packaging by -buildIdFile (scripts/build-app.sh). -->
+    <buildId>1</buildId>
+    <description>An unofficial Reddit client.</description>
+    <author>zsavajji</author>
+    <!-- 90 x 90, the Q10's size; drawn by scripts/gen-icons.py. -->
+    <icon>
+        <image>icon.png</image>
+    </icon>
+    <asset path="icon.png">icon.png</asset>
+    <!-- Shown from the tap to the app's first frame; one per screen the app meets in portrait
+         (Q10/Q5/Q20, Z30, Z10, Passport); drawn by scripts/gen-icons.py. -->
+    <asset path="splash-720x720.png">splash-720x720.png</asset>
+    <asset path="splash-720x1280.png">splash-720x1280.png</asset>
+    <asset path="splash-768x1280.png">splash-768x1280.png</asset>
+    <asset path="splash-1440x1440.png">splash-1440x1440.png</asset>
+    <splashScreens>
+        <image>splash-720x720.png</image>
+        <image>splash-720x1280.png</image>
+        <image>splash-768x1280.png</image>
+        <image>splash-1440x1440.png</image>
+    </splashScreens>
+
+    <initialWindow>
+        <autoOrients>false</autoOrients>
+        <aspectRatio>portrait</aspectRatio>
+        <systemChrome>none</systemChrome>
+    </initialWindow>
+
+    <configuration name="Device-Release">
+        <platformArchitecture>armle-v7</platformArchitecture>
+        <asset entryPointId="Phoenix" path="../build/app-ui/app/phoenix" entry="true" type="Qnx/Elf">phoenix</asset>
+        <!-- The engine: not an entry point, a plain child of the UI (app/native/phoenixd). -->
+        <asset path="../build/engine-bb10/phoenixd" type="Qnx/Elf">phoenixd</asset>
+    </configuration>
+
+    <entryPoint id="Phoenix">
+        <name>Phoenix for Reddit</name>
+    </entryPoint>
+
+    <!-- The QML and cacert.pem: app/native/assets. -->
+    <asset path="assets">assets</asset>
+    <!-- The translations, compiled by scripts/build-app.sh: app/native/qm. -->
+    <asset path="../build/qm">qm</asset>
+
+    <permission system="true">run_native</permission>
+    <permission>access_internet</permission>
+    <permission>access_shared</permission>
+    <env var="LD_LIBRARY_PATH" value="app/native/lib:/usr/lib/qt4/lib"/>
+    <!-- Dark for the Q10's OLED; orange as the primary colour. -->
+    <env var="CASCADES_THEME" value="dark?primaryColor=0xFF6A1A&amp;primaryBase=0xD9480F"/>
+</qnx>

@@ -1,6 +1,6 @@
 ---
 name: bb10-devices
-description: BlackBerry 10 device facts for app work — every model's screen, ppi, design-unit size (px per du), home-screen icon size, keyboard/trackpad/touch-keyboard input, SoC/GPU/RAM, OS version, and the asset-selector folders that pick per-device QML and images. Use when sizing UI for BB10 phones (Q10, Q5, Classic/Q20, Passport, Z10, Z30, Z3, Leap, Porsche Design), handling square vs tall screens, physical keyboards, trackpads, the Passport's touch keyboard or on-screen keyboards, choosing icon/splash sizes, planning performance on Krait CPUs, or deciding what can and cannot be tested on the user's phones (a Q10 and a Classic). The design doc with the sizes the apps measured is base-bb10/docs/13-design-and-screens.md.
+description: BlackBerry 10 device facts for app work — every model's screen, ppi, design-unit size (px per du), home-screen icon size, keyboard/trackpad/touch-keyboard input, SoC/GPU/RAM, OS version, and the asset-selector folders that pick per-device QML and images. Use when sizing UI for BB10 phones (Q10, Q5, Classic/Q20, Passport, Z10, Z30, Z3, Leap, Porsche Design), handling square vs tall screens, physical keyboards, trackpads, the Passport's touch keyboard or on-screen keyboards, choosing icon/splash sizes, planning performance on Krait CPUs, or deciding what can and cannot be tested on the user's phones (a Q10 and a Classic). The design doc with the sizes the apps measured is [docs/13-design-and-screens.md](../../docs/13-design-and-screens.md).
 ---
 
 # BlackBerry 10 devices

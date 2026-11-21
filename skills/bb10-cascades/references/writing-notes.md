@@ -45,7 +45,7 @@ shared->setContextProperty("prefs", &prefs);
 ```
 
 BBMusic sets them on the document and its rows reach the page through `ListItem.view` instead. If a list's rows read an app object directly, use the
-root context. (`phoenix/app/src/main.cpp`)
+root context. ([samples/ui/main.cpp](../../../samples/ui/main.cpp))
 
 **1.3 Parent the root: `setScene()` deletes a replaced scene.** `setScene()` deletes a scene it replaces when the Application owns it, and the
 Application owns one that came without a parent. BBMusic's root therefore gets `root->setParent(document)`, and `app.setScene(0)` runs before
@@ -59,7 +59,7 @@ logs "Invalid scaling method." for every `setScalingMethod(Fill)`: Tengram drops
 
 **1.5 QML numbers reach C++ as doubles.** `JsonDataAccess` does not write a double as a plain integer, and a Go engine's integer fields refuse it
 (an unix time from QML never took). The link class turns whole numbers into integers before it writes (`EngineLink::send`). Ids are strings across
-the socket and in QML (JS numbers lose precision past 2^53). [Q10] (`hyperberry/docs/plan/pitfalls.md`)
+the socket and in QML (JS numbers lose precision past 2^53). [Q10] (hyperberry's notes)
 
 **1.6 `Q_INVOKABLE` with a default argument.** moc clones the method per arity; calling both crashed on another Qt 4 platform. Use two names. [untested on BB10]
 
@@ -133,8 +133,8 @@ back what the pane had when it goes: `onTopChanged: nav.noPeek = !!nav.top && !!
 - Photo previews and sticker stills made off the UI thread (Tengram `PreviewMaker`): a photo-heavy chat froze 6 s until they were. Round pictures made on
   the worker cut 606 of 828 ms of one chat open. [Classic] (`f154d37`, `ad5ae3d`)
 
-## 5. Sources
+## 5. Samples
 
 - `../../../docs/07-ui-build.md` sections 5 and 6, `../../../docs/09-headless-service.md`, `../../../docs/13-design-and-screens.md` section 6.
-- `hyperberry/docs/plan/pitfalls.md`, `hyperberry/docs/plan/ui.md`; `bbmusic/app/src/main.cpp`, `bbmusic/app/assets/NowPlayingPage.qml`,
-  `MiniPlayer.qml`; `phoenix/app/src/main.cpp`, `phoenix/app/assets/HomeTab.qml`; `tengram` commits `f154d37`, `ad5ae3d`; `tengram/docs/ui-fork.md`.
+- [samples/ui/main.cpp](../../../samples/ui/main.cpp); [samples/design/NowPlayingPage.qml](../../../samples/design/NowPlayingPage.qml), [samples/design/AppCover.qml](../../../samples/design/AppCover.qml); [samples/lists/](../../../samples/lists/); `tengram` commits `f154d37`, `ad5ae3d`.
+- Written from the notes of hyperberry, bbmusic, phoenix and tengram (app names only).

@@ -1,7 +1,7 @@
 # base-bb10
 
 What it takes to build a native BlackBerry 10 app in 2026, written for a coding agent that starts a new one.
-Everything here was learned building four apps (on the author's machine they sit beside this repo, in one folder, and the citations are paths in that layout):
+Everything here was learned building four apps. This repo is self-contained: the code the docs refer to is in [samples/](samples/), and no app repo is needed:
 
 | App | What | UI | Engine | Engine runs as |
 |---|---|---|---|---|
@@ -11,7 +11,6 @@ Everything here was learned building four apps (on the author's machine they sit
 | [phoenix](https://github.com/zsavajji/phoenix) | Reddit client | Cascades, gcc 4.6.3 | C++20, libcurl + OpenSSL | plain child of the UI |
 
 The toolchain is [bb10-cxx20](https://github.com/zsavajji/bb10-cxx20); the headless memory patch is [rlimit-patch](https://github.com/zsavajji/authman-rlimit).
-Source paths such as `hyperberry/PLAN.md` are relative to the app's own repo.
 
 **Giving an agent context in one file:** paste [AGENT_CONTEXT.md](AGENT_CONTEXT.md) into its prompt. It is the
 short form of everything below, with a pointer to the doc for each topic.
@@ -65,6 +64,27 @@ build pipeline. Link or copy them into `~/.claude/skills/` or a project's `.clau
 | [bb10-cxx20](skills/bb10-cxx20/SKILL.md) | Using the `bb10-cxx20` toolchain |
 | [bb10-build-deploy](skills/bb10-build-deploy/SKILL.md) | Build, package, lint, install, failure signatures; its `scripts/` holds the QML lint (`cascades-qmllint.sh`) and the signal-handler check (`check-qml-handlers.py`) |
 
+## Samples
+
+[samples/](samples/) holds the reference code the docs cite; it is not built in this repo. Each top-level dir has a README.md saying which app file each sample came from.
+
+| Dir | Holds |
+|---|---|
+| [engine-link](samples/engine-link/) | The UI side of the engine link: loopback TCP with a token (headless), stdio child process |
+| [engine-cxx20](samples/engine-cxx20/) | C++20 engine pieces: CMake, `main` for a child and a headless service, server, build/test/fuzz scripts |
+| [engine-go](samples/engine-go/) | Go engine pieces: build and test scripts, `go.mod`, memory limit, navigator |
+| [docker](samples/docker/) | The Dockerfiles for the engine images, with the OpenSSL QNX patch |
+| [third-party](samples/third-party/) | Scripts and patches that build libraries (TDLib, libwebp, SQLCipher, ...) |
+| [ui](samples/ui/) | `.pro` files, `main.cpp`, logging, build and icon scripts |
+| [descriptor](samples/descriptor/) | `bar-descriptor.xml` for a child engine, a headless engine and a full app |
+| [cookbook](samples/cookbook/) | Cascades C++ and QML excerpts: invoke, share, SQLite, settings, cover |
+| [headless](samples/headless/) | The memory-patch installer: `MemoryPatch` and the root helper |
+| [phone](samples/phone/) | Push, install and test-driver scripts for the phone |
+| [video](samples/video/) | Hardware H.264 decode and encode, camera, drawing, remux |
+| [audio](samples/audio/) | PCM audio, call audio, proximity, now-playing |
+| [design](samples/design/) | Passport zoom, tap area, cover and page QML |
+| [lists](samples/lists/) | C++ list rows |
+
 ## A new app, step by step
 
 1. Read 01 and 02. Decide: is there an engine, in C++20 or Go, and does it outlive the UI (headless service) or
@@ -85,6 +105,6 @@ build pipeline. Link or copy them into `~/.claude/skills/` or a project's `.clau
 
 ## Keeping this current
 
-Each doc ends with the files it was written from. When an app teaches something new, change the doc of that
+Each doc ends with the samples it uses. When an app teaches something new, change the doc of that
 concern, keep the citation, and change [AGENT_CONTEXT.md](AGENT_CONTEXT.md) if the short form says otherwise.
 [BB10_CONTEXT.md](BB10_CONTEXT.md) is the Cascades API cookbook; AGENT_CONTEXT.md is the file to paste.
