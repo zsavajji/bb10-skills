@@ -72,6 +72,7 @@ build pipeline. Link or copy them into `~/.claude/skills/` or a project's `.clau
 |---|---|
 | [engine-link](samples/engine-link/) | The UI side of the engine link: loopback TCP with a token (headless), stdio child process |
 | [engine-cxx20](samples/engine-cxx20/) | C++20 engine pieces: CMake, `main` for a child and a headless service, server, build/test/fuzz scripts |
+| [gate-app](samples/gate-app/) | A gate app: a small headless engine plus a one-page UI, and gate programs for a root shell |
 | [engine-go](samples/engine-go/) | Go engine pieces: build and test scripts, `go.mod`, memory limit, navigator |
 | [docker](samples/docker/) | The Dockerfiles for the engine images, with the OpenSSL QNX patch |
 | [third-party](samples/third-party/) | Scripts and patches that build libraries (TDLib, libwebp, SQLCipher, ...) |
@@ -108,3 +109,7 @@ build pipeline. Link or copy them into `~/.claude/skills/` or a project's `.clau
 Each doc ends with the samples it uses. When an app teaches something new, change the doc of that
 concern, keep the citation, and change [AGENT_CONTEXT.md](AGENT_CONTEXT.md) if the short form says otherwise.
 [BB10_CONTEXT.md](BB10_CONTEXT.md) is the Cascades API cookbook; AGENT_CONTEXT.md is the file to paste.
+
+## Licence
+
+MIT: [LICENSE](LICENSE). It covers the docs, the skills and the code in `samples/`.

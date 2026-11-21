@@ -1,4 +1,4 @@
-// Excerpts of tengram/app/src/Settings.cpp: darkGrey, applyTheme and the boot timer (registerTimer).
+// Excerpts of Tengram's Settings.cpp: darkGrey, applyTheme and the boot timer (registerTimer).
 // Each cut is marked; the rest of the class is app logic.
 
 // [...] app logic left out

@@ -92,8 +92,8 @@ None of these is caught by `lupdate`; the lint catches only some. A failed docum
 **3.1 Making a page ahead.** Tengram's `ChatsPage` keeps one `ChatPage` made ahead (`takeChatPage`), made 0.7 s after the list is the top page
 again, because making it during the pop animation stuttered it. A page takes 92 to 209 ms to build; opening a chat measured 0.16 s with nothing unread
 and 0.88 s at the first unread, median, from the tap [Classic, 2026-11-20, `tengram` commit `ad5ae3d`]. Sheets and pages that are created on demand
-(`ComponentDefinition.createObject()`) keep a fault to that page: BBMusic loads only `main.qml`, `SearchPage.qml`, `MiniPlayer.qml` and
-`ConnectionBar.qml` at start.
+(`ComponentDefinition.createObject()`) keep a fault to that page: BBMusic loads only `main.qml`, [`SearchPage.qml`](../../../samples/design/SearchPage.qml), [`MiniPlayer.qml`](../../../samples/design/MiniPlayer.qml) and
+[`ConnectionBar.qml`](../../../samples/design/ConnectionBar.qml) at start.
 
 **3.2 A page that is not pushed: BBMusic's Now Playing.** The player is shown by taking the whole screen: `Application.scene = page`, and giving
 the old scene back on leaving (`NowPlayingPage.qml`, commits `006c696`, `45a356c`, `eee2cf5`, 2026-11-21). Reasons and rules from the code comments:
@@ -110,7 +110,7 @@ the old scene back on leaving (`NowPlayingPage.qml`, commits `006c696`, `45a356c
 - A double tap must open one player (BBMusic ignores a second `open()` within 800 ms).
 
 **3.3 Peek.** A page that needs every horizontal drag (a video's timeline, a zoomed picture) turns the pane's peek off while it is on top, and puts
-back what the pane had when it goes: `onTopChanged: nav.noPeek = !!nav.top && !!nav.top.noPeek` (Phoenix `HomeTab.qml`, taken from Tengram). [app]
+back what the pane had when it goes: `onTopChanged: nav.noPeek = !!nav.top && !!nav.top.noPeek` (Phoenix [`HomeTab.qml`](../../../samples/design/HomeTab.qml), taken from Tengram). [app]
 
 **3.4 Sheets** come from the right, as the system's do (BBMusic commit `006c696`). Page contents must fill the page: Tengram's Classic commit
 `f154d37` made ScrollViews and docked ListViews fill their page (ten pages "opened in a corner"). [Classic]

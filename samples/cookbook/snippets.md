@@ -1,4 +1,4 @@
-# Cookbook snippets (excerpts from the Tengram UI, tengram/app/src)
+# Cookbook snippets (excerpts from the Tengram UI)
 
 Short excerpts; each is the whole technique, the rest of the function is left out.
 

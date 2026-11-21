@@ -11,3 +11,6 @@ These samples are not built in this repo: they are reference code copied from th
 | snippets.md | tengram app/src @ 5a65cdf | excerpt | clipboard, thumbnail/fullscreen, version and screen size, shared files |
 | cover.qml | tengram app/assets/cover.qml @ 5a65cdf | verbatim | active frame cover |
 | signin-card.md | bbmusic app @ 1d80813 | excerpt | card invoke target, startupMode check |
+| ContactBook.cpp | tengram app/src @ 5a65cdf | verbatim | Paged read of the address book with bb::pim::contacts |
+| SignInCard.qml | bbmusic app/assets @ 1d80813 | verbatim | Scene shown when the UI is started as a card by another app |
+| Settings-hyperberry.cpp | hyperberry app/src/Settings.cpp @ df45afc | verbatim | Settings stored in an ini file, with engine-backed values |

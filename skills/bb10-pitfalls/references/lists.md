@@ -54,4 +54,4 @@ Entry form: symptom -> cause -> fix, tag, where seen. Tags are those of `../SKIL
   within 25 of the top. [Q10] (Tengram `ui-fork.md` 3.6)
 - **Photo-heavy list freezes** (6 s) -> previews and sticker stills made on the UI thread. Fix: make them on a worker and re-read the rows in 100 ms batches. [Classic] (`f154d37`)
 - **Rows with `StandardListItem` cannot be told where to stop their text** (an ellipsis before a grip): BBMusic estimated the text width from a screenshot
-  (`queue.js`: `textUnits`, `fit`); if it misses on another screen or font size the row must become a custom item with real padding. [Q10]
+  ([`queue.js`](../../../samples/lists/queue.js): `textUnits`, `fit`); if it misses on another screen or font size the row must become a custom item with real padding. [Q10]

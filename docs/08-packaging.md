@@ -127,10 +127,10 @@ How these parts relate: the engine asset carries `entryPointId="BBMusicService"`
 
 | Rule | Source and reason |
 |---|---|
-| **The `<id>` is fixed for good.** A new id is a different app beside the old; uninstalling deletes `data/` | "Fixed for good: a new id is a different app beside this one, and uninstalling deletes data/ (session.db holds the link, chats.db the only copy of the history)" (hyperberry's `bar-descriptor.xml`); tengram's says `db/` holds the Telegram session |
+| **The `<id>` is fixed for good.** A new id is a different app beside the old; uninstalling deletes `data/` | "Fixed for good: a new id is a different app beside this one, and uninstalling deletes data/ (session.db holds the link, chats.db the only copy of the history)" (hyperberry's [`bar-descriptor.xml`](../samples/descriptor/bar-descriptor-hyperberry.xml)); tengram's says `db/` holds the Telegram session |
 | `versionNumber`: up to 3 parts, each 0-999 | [skills/bb10-build-deploy/SKILL.md](../skills/bb10-build-deploy/SKILL.md) (only source) |
 | `buildId`: 0-65535; `Package-Version` = `versionNumber.buildId` | same skill. Phoenix/bbmusic keep `<buildId>1</buildId>` as a placeholder |
-| **`-buildIdFile` overwrites `buildId` at packaging, and every package must get a new one** | "the installer keeps the old app when Package-Version (versionNumber.buildId) didn't change" (hyperberry's `bar-descriptor.xml`). "Three rounds of fixes were once 'tested' on a stale build" (skill). Scripts keep `build/app-buildid.txt` (phoenix, bbmusic) or `build/buildid.txt` (hyperberry, tengram), create it with `1` when missing, and print `Package-Version` |
+| **`-buildIdFile` overwrites `buildId` at packaging, and every package must get a new one** | "the installer keeps the old app when Package-Version (versionNumber.buildId) didn't change" (hyperberry's [`bar-descriptor.xml`](../samples/descriptor/bar-descriptor-hyperberry.xml)). "Three rounds of fixes were once 'tested' on a stale build" (skill). Scripts keep `build/app-buildid.txt` (phoenix, bbmusic) or `build/buildid.txt` (hyperberry, tengram), create it with `1` when missing, and print `Package-Version` |
 | **Every ELF asset gets `type="Qnx/Elf"`** | only `Qnx/Elf` assets get the execute bit; a binary copied to shared storage loses it (skill). That includes `.so` files and helper executables |
 | **Ship shared libraries under their SONAME** | symlinks are not carried (skill, example `libc++_shared.so.1`) |
 | **Assets land under `app/native/`** | `path` in source, text = destination ([samples/descriptor/bar-descriptor-child.xml](../samples/descriptor/bar-descriptor-child.xml) comments) |
@@ -139,7 +139,7 @@ How these parts relate: the engine asset carries `entryPointId="BBMusicService"`
 
 ## 4. Extras of hyperberry and tengram
 
-Both are one descriptor shape (hyperberry's `bar-descriptor.xml`, [samples/descriptor/bar-descriptor-full.xml](../samples/descriptor/bar-descriptor-full.xml)); tengram adds the multi-file share, `libtgs.so` and a different Hub glyph set.
+Both are one descriptor shape (hyperberry's [`bar-descriptor.xml`](../samples/descriptor/bar-descriptor-hyperberry.xml), [samples/descriptor/bar-descriptor-full.xml](../samples/descriptor/bar-descriptor-full.xml)); tengram adds the multi-file share, `libtgs.so` and a different Hub glyph set.
 
 **Service filters** (on `application.headless` target `<id>.service`), beside `...START`:
 
@@ -158,7 +158,7 @@ Both are one descriptor shape (hyperberry's `bar-descriptor.xml`, [samples/descr
 | `bb.action.SHARE` | `text/plain` | `data://local` | shared text |
 | `bb.action.OPEN`, `bb.action.VIEW` | `*` | `http://wa.me/,https://wa.me/,...,whatsapp://` (hyperberry only; a long comma-separated list in the file) | links tapped anywhere. "A more specific uri wins over the browser's http://" |
 
-The skill's generic example registers `http://,https://` to receive web links from other apps (skill); hyperberry registers specific prefixes instead (hyperberry's `bar-descriptor.xml`). "No API makes an app the default browser/handler; the user picks 'Set as default' in the Open in... chooser (untested)" (skill).
+The skill's generic example registers `http://,https://` to receive web links from other apps (skill); hyperberry registers specific prefixes instead (hyperberry's [`bar-descriptor.xml`](../samples/descriptor/bar-descriptor-hyperberry.xml)). "No API makes an app the default browser/handler; the user picks 'Set as default' in the Open in... chooser (untested)" (skill).
 
 **Card target** (bbmusic, [samples/descriptor/bar-descriptor-headless.xml](../samples/descriptor/bar-descriptor-headless.xml), bbmusic's notes):
 
@@ -174,7 +174,7 @@ The skill's generic example registers `http://,https://` to receive web links fr
 </invoke-target>
 ```
 
-The card runs the UI's own entry point; bbmusic's `main.cpp` detects it with `InvokeManager::startupMode() == ApplicationStartupMode::InvokeCard` and loads `SignInCard.qml` instead of `main.qml`. The answer goes back with `childCardDone`; calling a card must be done from C++ because "QML's `Invocation` cannot read a card's answer" (bbmusic's notes).
+The card runs the UI's own entry point; bbmusic's `main.cpp` detects it with `InvokeManager::startupMode() == ApplicationStartupMode::InvokeCard` and loads [`SignInCard.qml`](../samples/cookbook/SignInCard.qml) instead of `main.qml`. The answer goes back with `childCardDone`; calling a card must be done from C++ because "QML's `Invocation` cannot read a card's answer" (bbmusic's notes).
 
 **Public assets for the Hub** (hyperberry, tengram):
 
@@ -201,7 +201,7 @@ It lands in `native/lib`, which is on `LD_LIBRARY_PATH` (section 1).
 <asset path="../build/headless-mem.zip">headless-mem.zip</asset>
 ```
 
-The helper is compiled with `qcc -Vgcc_ntoarmv7le -O2 -o build/ui/tg-install-patcher app/helper/tg-install-patcher.c` inside the NDK image (tengram's `build-app.sh`). What they do: [09-headless-service.md](09-headless-service.md).
+The helper is compiled with `qcc -Vgcc_ntoarmv7le -O2 -o build/ui/tg-install-patcher app/helper/tg-install-patcher.c` inside the NDK image (tengram's [`build-app.sh`](../samples/ui/scripts/build-app-tengram.sh)). What they do: [09-headless-service.md](09-headless-service.md).
 
 **Icons: five sizes and splash screens.** hyperberry and tengram list `icon-86.png`, `icon-90.png`, `icon-96.png`, `icon-110.png`, `icon-144.png` as five `<asset>`s and five `<icon><image>` entries ("every size the home screens pick from. The Q10 takes 90"). phoenix and bbmusic ship one 90 x 90 `icon.png`. Splash screens are one per resolution the app can meet in portrait: 720x720 (Q10, Q5, Classic), 720x1280 (Z30), 768x1280 (Z10), 1440x1440 (Passport). The launch screen is shown "from the tap until the app's first frame (the user's ask, 2026-11-06: it stayed black)". Drawn by the `gen-*.py` scripts ([07-ui-build.md](07-ui-build.md) section 8).
 
@@ -269,14 +269,14 @@ Sources: [skills/bb10-build-deploy/SKILL.md](../skills/bb10-build-deploy/SKILL.m
 
 The mechanism (nothing here opens a key file): an API key and hash (Telegram's) come from the environment or from a git-ignored key file at the repo root, are read by the build script, and are compiled into the engine with `-D`. They are never in a tracked file, notes or memory (tengram's notes section 3).
 
-- tengram's `build-app.sh` exports `TG_API_ID` and `TG_API_HASH` from the environment, or reads `TG_API_ID=` and `TG_API_HASH=` lines of `.tg-keys` with `sed -n 's/^TG_API_ID=//p'`; it stops with exit 2 and a message when either is missing.
+- tengram's [`build-app.sh`](../samples/ui/scripts/build-app-tengram.sh) exports `TG_API_ID` and `TG_API_HASH` from the environment, or reads `TG_API_ID=` and `TG_API_HASH=` lines of `.tg-keys` with `sed -n 's/^TG_API_ID=//p'`; it stops with exit 2 and a message when either is missing.
 - [samples/engine-cxx20/scripts/link-tdlib.sh](../samples/engine-cxx20/scripts/link-tdlib.sh) passes them into the Docker build as `-e TG_API_ID=... -e TG_API_HASH=...` and compiles `-DTENGRAM_API_ID=$TG_API_ID -DTENGRAM_API_HASH="$TG_API_HASH"`. The packaged service gets no environment of ours, so they must be compiled in. The engine lets `TG_API_ID`/`TG_API_HASH` in the environment override them for test runs ([samples/engine-cxx20/main-tdlib-service.cpp](../samples/engine-cxx20/main-tdlib-service.cpp)).
 - The key file is in `.gitignore` (tengram's `.gitignore`); phoenix's is `.reddit-keys` ([samples/engine-cxx20/gitignore](../samples/engine-cxx20/gitignore)).
 - Ask the user for them; pass on the command line only (`TG_API_ID=... TG_API_HASH=... scripts/build-app.sh`).
 
 ## 9. Bundling a sibling repo's artifact
 
-hyperberry and tengram bundle [rlimit-patch](https://github.com/zsavajji/authman-rlimit)'s `headless-mem.zip`. The Docker mount covers only the project (`-v "$ROOT:/src"`), so the zip must be a real copy inside the project's `build/` before the packager runs. From tengram's `build-app.sh` (`RLIMIT_PATCH` is your checkout of [rlimit-patch](https://github.com/zsavajji/authman-rlimit)):
+hyperberry and tengram bundle [rlimit-patch](https://github.com/zsavajji/authman-rlimit)'s `headless-mem.zip`. The Docker mount covers only the project (`-v "$ROOT:/src"`), so the zip must be a real copy inside the project's `build/` before the packager runs. From tengram's [`build-app.sh`](../samples/ui/scripts/build-app-tengram.sh) (`RLIMIT_PATCH` is your checkout of [rlimit-patch](https://github.com/zsavajji/authman-rlimit)):
 
 ```sh
 if [ ! -x "$RLIMIT_PATCH/build.sh" ]; then
@@ -291,7 +291,7 @@ The descriptor then says `<asset path="../build/headless-mem.zip">headless-mem.z
 
 ## Where sources disagree
 
-- [samples/descriptor/bar-descriptor-full.xml](../samples/descriptor/bar-descriptor-full.xml) says `-buildIdFile` is used by `scripts/build-ui.sh`; the packaging is in tengram's `build-app.sh`. The script wins.
+- [samples/descriptor/bar-descriptor-full.xml](../samples/descriptor/bar-descriptor-full.xml) says `-buildIdFile` is used by [`scripts/build-ui.sh`](../samples/ui/scripts/build-ui-checks.sh); the packaging is in tengram's [`build-app.sh`](../samples/ui/scripts/build-app-tengram.sh). The script wins.
 - hyperberry's phase-0 notes say the boot filter was `bb.action.system.STARTED`; the descriptors use `bb.action.system.TIMER_FIRED`. See [09-headless-service.md](09-headless-service.md).
 
 ## Samples

@@ -81,7 +81,7 @@ What each part does:
 - **`CGO_LDFLAGS=-Wl,-rpath-link,$QNX_TARGET/armle-v7/usr/lib/qt4/lib`**: the Hub library `libunifieddatasourcec.so` NEEDs Qt libraries that exist only in the SDK's `qt4/lib`; "only the linker looks for them here" (the script's own comment).
 - **`-trimpath -ldflags="-s -w"`**: the release flags; the script gives no reason beyond them.
 - **The imported-symbols check**: collect the dynamic symbols that the phone's libraries define (libc, libm, libsocket, libbps, libunifieddatasourcec, libmmrndclient, libstrm), then fail if the binary imports one not in the list. Same trap as in [04-engine-cxx20.md](04-engine-cxx20.md) §7: "such a binary links here and fails only on the phone". Extend the library list when the engine links a new system library.
-- **`GOWORK`** from `hypermeow-work.sh` (section 5).
+- **`GOWORK`** from [`hypermeow-work.sh`](../samples/engine-go/patch-deps-work.sh) (section 5).
 - Gate 0.1 result: hypermeow builds unmodified (`CGO_ENABLED=0`: 14 MB); with `mattn/go-sqlite3` through bb10-clang: 15.6 MB, all 153 imports present (HyperBerry's phase 0 notes 0.1).
 
 `push-engine.sh` copies a test build to the phone (scratch folder `/root/hyperberry`, `pathtrust !`, fresh name per build): [10-phone-access-and-install.md](10-phone-access-and-install.md).
@@ -106,21 +106,21 @@ docker run --rm -v "$ROOT:/src" -v "$CACHE:/cache" -w /src/engine \
 		go vet ./... && go test ./...'
 ```
 
-- **Same image, `CC=cc`** (the image's host compiler) and no `GOOS`: the engine is plain Go, so it also builds for Linux with the same go-qnx toolchain. Most of Phase 1 ran this way, against a **simulated account** (`-sim` or a file `data/sim`, `sim*.go`, driven by `scripts/sim.py`), and the protocol is tested with `socat - TCP:127.0.0.1:<port>` and typed JSON (`design.md` §8).
-- **`*_qnx.go` for phone-only code** with `//go:build qnx` and a matching `*_other.go` stub for the PC: `navigator_qnx.go`/`navigator_other.go`, `hub_qnx.go`/`hub_other.go`, `net_qnx.go`/`net_other.go`, `ringtone_qnx.go`/`ringtone_other.go` (HyperBerry's engine). These use cgo with `#cgo LDFLAGS: -lbps`.
+- **Same image, `CC=cc`** (the image's host compiler) and no `GOOS`: the engine is plain Go, so it also builds for Linux with the same go-qnx toolchain. Most of Phase 1 ran this way, against a **simulated account** (`-sim` or a file `data/sim`, `sim*.go`, driven by [`scripts/sim.py`](../samples/phone/sim-driver.py)), and the protocol is tested with `socat - TCP:127.0.0.1:<port>` and typed JSON (`design.md` §8).
+- **`*_qnx.go` for phone-only code** with `//go:build qnx` and a matching `*_other.go` stub for the PC: `navigator_qnx.go`/`navigator_other.go`, [`hub_qnx.go`](../samples/engine-go/hub_qnx.go)/[`hub_other.go`](../samples/engine-go/hub_other.go), [`net_qnx.go`](../samples/engine-go/net_qnx.go)/[`net_other.go`](../samples/engine-go/net_other.go), [`ringtone_qnx.go`](../samples/engine-go/ringtone_qnx.go)/[`ringtone_other.go`](../samples/engine-go/ringtone_other.go) (HyperBerry's engine). These use cgo with `#cgo LDFLAGS: -lbps`.
 - Pitfall seen with the tests: a request field of the same name and another type as one in the server's envelope fails the whole request as `bad_request`; handler-level tests (`r.raw`) did not see it. **Test a new field through the socket** (`pitfalls.md`, "Go on BB10").
 
 ## 4. Memory under the headless cap
 
 - Headless entry point: **3 MB** heap without a memory class; the engine "exited 47 ms after launch, before `main`", and the UI's invoke got error 6 (`Target`). `_sys_headless_xlarge` lifts it (30 MiB; 128 MiB with `rlimit-patch`). Idle and unlinked the engine held 6.4 MB (HyperBerry's phase 0 notes 0.3; `rlimit-patch/README.md`). All the headless rules: [09-headless-service.md](09-headless-service.md).
 - **The runtime writes one byte to every heap and stack page before use**: 1.7 ms per MB on BB10, once per page (go-qnx README, in HyperBerry's plan §2).
-- **Out of memory is not recoverable in Go**, and an allocation other platforms shrug off kills the engine: hypermeow believed a frame's claimed length (fixed by `engine/framesocket.patch`) (`pitfalls.md`).
-- **Knobs**: `debug.SetMemoryLimit` and a lower `GOGC` "before anything structural" (`design.md` §6). `main.go` calls `rdebug.SetMemoryLimit(goMemLimit(memMB))`; the limit "follows the real cap (four fifths of it)" (HyperBerry's translation notes). It was `SetMemoryLimit(24 MB)` before the memory patch (HyperBerry's phase 7 notes).
+- **Out of memory is not recoverable in Go**, and an allocation other platforms shrug off kills the engine: hypermeow believed a frame's claimed length (fixed by [`engine/framesocket.patch`](../samples/engine-go/patches/framesocket.patch)) (`pitfalls.md`).
+- **Knobs**: `debug.SetMemoryLimit` and a lower `GOGC` "before anything structural" (`design.md` §6). [`main.go`](../samples/engine-go/main.go) calls `rdebug.SetMemoryLimit(goMemLimit(memMB))`; the limit "follows the real cap (four fifths of it)" (HyperBerry's translation notes). It was `SetMemoryLimit(24 MB)` before the memory patch (HyperBerry's phase 7 notes).
 - **Design to the cap**: whole files and pictures in memory cannot work. Files stream (downloads through `DownloadToFile`, uploads through `UploadReader` with a temporary file); **the engine never decodes a picture**: the UI makes photo previews with Qt's JPEG reader into `data/cache/previews/` (HyperBerry's phase 6 notes). Two real 30 MiB failures were bugs fixed at the source, not cap problems: a voice note decoded whole (31 MB) and a group list fetched with its members (`translate.md`).
 - **Calls audio runs in the UI process** because of the capped heap: "the microphone, the speaker and their buffers belong to the UI process, which has no such cap. The engine keeps what only Go can do: meowcaller's signalling, SRTP and the MLOW codec" (`phase7.md`, the user's calls, 2026-11-07). Contrast: bbmusic's engine owns the speaker (C++ heap, no GC).
 - **`crash.log`**: keeps old crashes, and an out-of-memory dump's first stack is who asked last, not who took the memory. Grep a dump for every `main.` frame and read `git log` around its date before blaming (`pitfalls.md`).
 
-## 5. Patching dependencies without forking: `scripts/hypermeow-work.sh`
+## 5. Patching dependencies without forking: [`scripts/hypermeow-work.sh`](../samples/engine-go/patch-deps-work.sh)
 
 ```sh
 #!/bin/sh
@@ -166,7 +166,7 @@ The recipe, for any dependency you must patch:
 2. Apply your patches with **`patch -s --fuzz=0 -p1`**. Zero fuzz on purpose: "A module whose file has moved on makes patch fail, which stops the build instead of losing the fix."
 3. Write a **generated `go.work`** that `use`s the engine and `replace`s the module with the patched copy; print its path; the build exports `GOWORK=$work`.
 4. **Why not `go -overlay`**: it "refuses files in the module cache".
-5. The patch files live in `engine/` (`framesocket.patch`, `hypermeow-status.patch`, `hypermeow-fullsync.patch`, `meowcaller*.patch`, `meowcaller/0N-*.patch`) and are applied at build time. Bumping the dependency may stop the build: that is the intent.
+5. The patch files live in `engine/` ([`framesocket.patch`](../samples/engine-go/patches/framesocket.patch), [`hypermeow-status.patch`](../samples/engine-go/patches/hypermeow-status.patch), [`hypermeow-fullsync.patch`](../samples/engine-go/patches/hypermeow-fullsync.patch), `meowcaller*.patch`, `meowcaller/0N-*.patch`) and are applied at build time. Bumping the dependency may stop the build: that is the intent.
 
 ## 6. Go-specific findings (HyperBerry's pitfalls notes "Go on BB10", in full, with the other recorded ones)
 
@@ -180,14 +180,14 @@ All tagged [Q10] (seen on the user's Q10) unless noted.
 | The runtime writes **one byte to every new page**, 1.7 ms per MB | allocate less; see section 4 |
 | **No runtime CPU detection on QNX**: libopus builds with `--disable-rtcd` and `-mfpu=neon`, or the ARM build does not compile | fixed at configure time (gate 0.8) |
 | A goroutine reading a tunable global races a test that restores it | copy the value before `go` |
-| An allocation other platforms shrug off **kills the engine** (out of memory is not recoverable; hypermeow believed a frame's claimed length) | `engine/framesocket.patch` |
+| An allocation other platforms shrug off **kills the engine** (out of memory is not recoverable; hypermeow believed a frame's claimed length) | [`engine/framesocket.patch`](../samples/engine-go/patches/framesocket.patch) |
 | **Every request goes through the server's envelope first**, a struct with typed fields (`@`, `cmd`, `token`, `audio`, `video`): a request field of the same name and another type fails the whole request as `bad_request` (`call.answer`'s bool `video` did) | test new fields through the socket |
-| **Google's keyless translate endpoint refuses Go's HTTP/2 client**: 429 at the first request, whatever the User-Agent; HTTP/1.1 gets 200 | a transport with an empty `TLSNextProto`, made fresh: a clone of `http.DefaultTransport` already offers h2 in its TLS config (`engine/translate.go`) |
+| **Google's keyless translate endpoint refuses Go's HTTP/2 client**: 429 at the first request, whatever the User-Agent; HTTP/1.1 gets 200 | a transport with an empty `TLSNextProto`, made fresh: a clone of `http.DefaultTransport` already offers h2 in its TLS config ([`engine/translate.go`](../samples/engine-go/translate.go)) |
 | **gofmt rewrites `''` in a doc comment as a curly quote** | write "empty" |
-| **Docker can show a file just rewritten on the Mac at its old length** (gofmt saw `translate.go` cut short) | run the check again before believing it |
+| **Docker can show a file just rewritten on the Mac at its old length** (gofmt saw [`translate.go`](../samples/engine-go/translate.go) cut short) | run the check again before believing it |
 | Timers have **1 ms granularity** (go-qnx README) | do not rely on finer |
 | **Passport Wi-Fi** corrupts about one frame in thousands when several connections send at once; the Q10's different Wi-Fi is not known to be affected | TLS everywhere, retry on "bad record MAC" (`PLAN.md` §2) |
-| A **headless app's Hub account**: the UDS C library works from a Go engine with no Qt event loop, in synchronous mode (cgo to `libunifieddatasourcec`, `hub_qnx.go`) | [09-headless-service.md](09-headless-service.md) |
+| A **headless app's Hub account**: the UDS C library works from a Go engine with no Qt event loop, in synchronous mode (cgo to `libunifieddatasourcec`, [`hub_qnx.go`](../samples/engine-go/hub_qnx.go)) | [09-headless-service.md](09-headless-service.md) |
 | BPS from Go: `navigator_qnx.go` (cgo, `-lbps`) connects to the navigator first thing (366 ms after launch; the rule is 6 s), hands each invoke's action to the engine, and turns `NAVIGATOR_EXIT` (sent before a reinstall, with 3 s to go) into a clean shutdown | gate 0.3 |
 | Notifications from the engine: BPS `notify`/`withdraw` initialise BPS on the calling thread, so any goroutine can post; they work only from an app, not from a root shell | gate 0.5 |
 | Pitfall of the test harness: the **gate pages invoke the engine with actions** (`com.zsavajji.hyperberry.SQLTEST`) because a headless launch gets no arguments | gate 0.4 |
@@ -202,7 +202,7 @@ All tagged [Q10] (seen on the user's Q10) unless noted.
 
 ## 8. The engine's files (HyperBerry's design notes §6)
 
-One Go file per job, no interface with a single implementation: `main.go`/`engine.go` (flags, data dir; `-sim`), `log.go` (`data/logs/hyperberryd.log`, 256 KiB, one rotation), `roots.go`, `navigator_qnx.go`, `server.go` (loopback socket, token, framing), `session.go` (the hypermeow client and link state), `db.go` (migrations), `store.go` (events to rows, one writer), `send.go`, `media.go`, `voice*.go` (WAV <-> OGG Opus, libopus through cgo, Ogg pages in Go), `notifier.go`/`hub*.go` (Hub account), `sim*.go` (the simulated account). The handshake with the UI is in [02-architecture.md](02-architecture.md) §3.
+One Go file per job, no interface with a single implementation: [`main.go`](../samples/engine-go/main.go)/[`engine.go`](../samples/engine-go/engine.go) (flags, data dir; `-sim`), [`log.go`](../samples/engine-go/log.go) (`data/logs/hyperberryd.log`, 256 KiB, one rotation), `roots.go`, `navigator_qnx.go`, [`server.go`](../samples/engine-go/server.go) (loopback socket, token, framing), [`session.go`](../samples/engine-go/session.go) (the hypermeow client and link state), [`db.go`](../samples/engine-go/db.go) (migrations), [`store.go`](../samples/engine-go/store.go) (events to rows, one writer), [`send.go`](../samples/engine-go/send.go), [`media.go`](../samples/engine-go/media.go), `voice*.go` (WAV <-> OGG Opus, libopus through cgo, Ogg pages in Go), [`notifier.go`](../samples/engine-go/notifier.go)/`hub*.go` (Hub account), `sim*.go` (the simulated account). The handshake with the UI is in [02-architecture.md](02-architecture.md) §3.
 
 ## Samples
 
@@ -215,4 +215,4 @@ One Go file per job, no interface with a single implementation: `main.go`/`engin
 - [samples/engine-go/patch-deps-work.sh](../samples/engine-go/patch-deps-work.sh)
 - [samples/phone/push-engine.sh](../samples/phone/push-engine.sh)
 
-`samples/engine-go/patch-deps-work.sh` is `hypermeow-work.sh` in HyperBerry (section 5). [whatsapp-light](https://github.com/vbbot/whatsapp-light): the `meowcaller/*.patch` fixes are applied first in it.
+`samples/engine-go/patch-deps-work.sh` is [`hypermeow-work.sh`](../samples/engine-go/patch-deps-work.sh) in HyperBerry (section 5). [whatsapp-light](https://github.com/vbbot/whatsapp-light): the `meowcaller/*.patch` fixes are applied first in it.

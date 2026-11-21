@@ -1,4 +1,4 @@
-// Excerpt of hyperberry/app/src/main.cpp: the log handler (qInstallMsgHandler to slog2 and a file),
+// Excerpt of HyperBerry's main.cpp: the log handler (qInstallMsgHandler to slog2 and a file),
 // the start-time probe and the QML-errors file. Includes trimmed to those the excerpt uses.
 #include <bb/cascades/Application>
 #include <bb/cascades/QmlDocument>

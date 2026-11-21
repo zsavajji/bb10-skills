@@ -8,7 +8,7 @@
 # refused copy is emptied and parked in denied/ (kept, so its inode is never handed out again).
 # The check is `<file> <check-argument>` exiting with anything but 126 (not permitted); the default
 # argument is -h. For a script that must not run as a check, pass `-n` handling yourself or use
-# a harmless argument. From ../hyperberry/scripts/push-engine.sh.
+# a harmless argument. From HyperBerry's push-engine.sh.
 set -eu
 PHONE=${PHONE:-bb10rootx}
 DIR=${DIR:-/root/tengram}

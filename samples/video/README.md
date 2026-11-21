@@ -18,3 +18,7 @@ Video decoding, camera encoding, playback and remuxing. Not built in this repo; 
 | h264gate/h264gate.c, h264uri.c, h264il.c | hyperberry `df45afc` tools/h264gate | verbatim | The OpenMAX AL and IL gate programs |
 | remux/mpd.h, mpd.cpp, remux.h, remux.cpp | phoenix `4e06969` engine/src/mp4 | verbatim | DASH manifest parse and remux to a seekable MP4 |
 | remux/video.cpp | phoenix `4e06969` engine/src/media | verbatim | Video fetch, merge and remux in the engine |
+| StoryViewer.qml | hyperberry `df45afc` app/assets | verbatim | Full-screen story viewer with progress segments |
+| CallVideoView.qml | hyperberry `df45afc` app/assets | verbatim | Video call view: peer picture, own camera in a corner |
+| rotate_test.cpp | hyperberry `df45afc` app/tests | verbatim | Frame rotation check run on the Mac |
+| VideoPage.qml | phoenix `4e06969` app/assets | verbatim | Full-screen video through MediaPlayer into a ForeignWindowControl |

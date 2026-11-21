@@ -13,3 +13,15 @@ These samples are not built in this repo: they are reference code copied from th
 | scripts/build-ui-checks.sh | tengram scripts/build-ui.sh @ 5a65cdf | verbatim | UI build with checks |
 | scripts/gen-icons.py | phoenix scripts/gen-icons.py @ 4e06969 | verbatim | icon generation |
 | scripts/gen-app-icon.py | tengram scripts/gen-icon.py @ 5a65cdf | verbatim | app icon generation |
+| bbmusic.pro | bbmusic app/ @ 1d80813 | verbatim | qmake project of a UI beside a headless engine |
+| hyperberry.pro | hyperberry app/ @ df45afc | verbatim | qmake project of the UI of a headless engine app |
+| errors.js | hyperberry app/assets/ @ df45afc | verbatim | Failed request code to user text |
+| tests/format_test.js | phoenix app/tests/ @ 4e06969 | verbatim | Node test of the pages pure helpers |
+| tests/queue_test.js | bbmusic app/tests/ @ 1d80813 | verbatim | Node test of queue.js |
+| tests/test-phone.js | hyperberry scripts/ @ df45afc | verbatim | Node test of a QML-side JS file |
+| scripts/build-app-bbmusic.sh | bbmusic scripts/build-app.sh @ 1d80813 | verbatim | UI plus engine build and unsigned package |
+| scripts/build-app-hyperberry.sh | hyperberry scripts/build-app.sh @ df45afc | adapted | UI plus engine build, memory addon and helper; RLIMIT_PATCH replaces a sibling path (marked) |
+| scripts/build-app-tengram.sh | tengram scripts/build-app.sh @ 5a65cdf | adapted | UI plus engine build, memory addon and helper; RLIMIT_PATCH replaces a sibling path (marked) |
+| scripts/gen-icons-bbmusic.py | bbmusic scripts/gen-icons.py @ 1d80813 | verbatim | Icons drawn with zlib only |
+| scripts/gen-icons-hyperberry.py | hyperberry scripts/gen-icons.py @ df45afc | verbatim | Chat marks and action icons drawn in code |
+| scripts/gen-app-icon-phoenix.py | phoenix scripts/gen-app-icon.py @ 4e06969 | verbatim | Launcher icon and splash screens from an SVG glyph |

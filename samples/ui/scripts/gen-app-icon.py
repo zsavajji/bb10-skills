@@ -99,7 +99,7 @@ def glyph(px, top, foot=None, fill=0.7, gap=0.04, out=None):
     2026-11-17: inverted, the plane a cutout of the circle), an RGBA image px square, the disc `fill` of the
     box. `top` is its colour, fading straight down to `foot` when given, as the system's glyphs do. `gap` is
     the cut between the pieces as a share of the plane's width: wider than the app icon's, or it closes up at
-    this size. HyperBerry's recipe (../hyperberry/scripts/gen-icons.py, app_icon with mono): drawn large,
+    this size. HyperBerry's recipe (its gen-icons.py, app_icon with mono): drawn large,
     scaled down, painted flat over the shape and pasted with no mask, since a masked paste darkens the edges."""
     from PIL import Image, ImageDraw
     k = 4  # 512 * 4: drawn large
@@ -150,7 +150,7 @@ def icon(px):
 def app_images(folder):
     """The home screen's icon in every size BB10 picks from (the Q10 takes 90), and the launch screen for each
     screen a portrait app can meet (Q10 and Classic, Z30, Z10, Passport): the icon on black, 30 % of the width,
-    as HyperBerry's (../hyperberry/scripts/gen-icons.py)."""
+    as HyperBerry's gen-icons.py."""
     from PIL import Image
     # 288 is not the home screen's: WelcomePage.qml's logo, 32 du on the Q10.
     for px in (86, 90, 96, 110, 144, 288):

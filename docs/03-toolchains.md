@@ -79,9 +79,9 @@ The variant names: `_cpp` is Dinkumware's C++ library (what Qt and Cascades use)
 
 ### 3.1 Cascades/Qt UI code: two options in use
 
-**Default: `qcc -Vgcc_ntoarmv7le`** = GCC 4.6.3 with **Dinkumware's C++ library** (`libcpp.so.4`) and partial C++11 (no `override`, no `final`; the older note in HyperBerry's pitfalls notes says "GCC 4.6.3, so C++98: no `auto`, lambdas, `nullptr` or range-for; `SIGNAL`/`SLOT`"). BBMusic's `.pro` and [samples/ui/app.pro](../samples/ui/app.pro) set no compiler, so they use this default.
+**Default: `qcc -Vgcc_ntoarmv7le`** = GCC 4.6.3 with **Dinkumware's C++ library** (`libcpp.so.4`) and partial C++11 (no `override`, no `final`; the older note in HyperBerry's pitfalls notes says "GCC 4.6.3, so C++98: no `auto`, lambdas, `nullptr` or range-for; `SIGNAL`/`SLOT`"). BBMusic's [`.pro`](../samples/ui/bbmusic.pro) and [samples/ui/app.pro](../samples/ui/app.pro) set no compiler, so they use this default.
 
-**GCC 4.8.3 with `-std=gnu++11`** (user, 2026-11-20): HyperBerry's `.pro` and [samples/ui/app-gcc483.pro](../samples/ui/app-gcc483.pro). The qmake lines, copied exactly from [samples/ui/app-gcc483.pro](../samples/ui/app-gcc483.pro):
+**GCC 4.8.3 with `-std=gnu++11`** (user, 2026-11-20): HyperBerry's [`.pro`](../samples/ui/hyperberry.pro) and [samples/ui/app-gcc483.pro](../samples/ui/app-gcc483.pro). The qmake lines, copied exactly from [samples/ui/app-gcc483.pro](../samples/ui/app-gcc483.pro):
 
 ```
 QMAKE_CC = qcc -V4.8.3,gcc_ntoarmv7le
@@ -94,7 +94,7 @@ QMAKE_CXXFLAGS += -std=gnu++11
 LIBS += -L$$(QNX_TARGET)/armle-v7/lib/gcc/4.6.3 -lcpp
 ```
 
-HyperBerry's `.pro` has the same lines. Both also have `QMAKE_CXXFLAGS += -Wno-psabi` and `QMAKE_LFLAGS += -Wl,-rpath-link,$${QNX_DIR}/$${QNX_CPUDIR}/usr/lib/qt4/lib`.
+HyperBerry's [`.pro`](../samples/ui/hyperberry.pro) has the same lines. Both also have `QMAKE_CXXFLAGS += -Wno-psabi` and `QMAKE_LFLAGS += -Wl,-rpath-link,$${QNX_DIR}/$${QNX_CPUDIR}/usr/lib/qt4/lib`.
 
 Why, from the comments in those two files:
 
@@ -114,7 +114,7 @@ Which to pick for a new app: 4.8.3 with `gnu++11` if you want `override`, `final
 
 ### 3.2 C in the UI
 
-Use **`-std=gnu99`, not `c99`**: strict ISO C hides the POSIX functions (`open`, `fcntl`, `pthread_mutexattr_settype`) that SQLite's amalgamation calls, so it does not compile ([samples/ui/app-gcc483.pro](../samples/ui/app-gcc483.pro): `QMAKE_CFLAGS += -std=gnu99`). HyperBerry's `.pro` uses `-std=c99` and builds only because its one C file, qrcodegen, calls no POSIX function. C++ is separate: GCC 4.8.3 does C++11 with `-std=gnu++11` (section 3.1). HyperBerry's `.pro` uses `QMAKE_CFLAGS += -std=c99` (its only C file there is the qrcodegen QR encoder plus libwebp); tengram's is the newer and wider rule.
+Use **`-std=gnu99`, not `c99`**: strict ISO C hides the POSIX functions (`open`, `fcntl`, `pthread_mutexattr_settype`) that SQLite's amalgamation calls, so it does not compile ([samples/ui/app-gcc483.pro](../samples/ui/app-gcc483.pro): `QMAKE_CFLAGS += -std=gnu99`). HyperBerry's [`.pro`](../samples/ui/hyperberry.pro) uses `-std=c99` and builds only because its one C file, qrcodegen, calls no POSIX function. C++ is separate: GCC 4.8.3 does C++11 with `-std=gnu++11` (section 3.1). HyperBerry's [`.pro`](../samples/ui/hyperberry.pro) uses `QMAKE_CFLAGS += -std=c99` (its only C file there is the qrcodegen QR encoder plus libwebp); tengram's is the newer and wider rule.
 
 C-only defines for qcc go through `-Wc,"-D..."`: `DEFINES` reach C++ only ([skills/bb10-build-deploy](../skills/bb10-build-deploy/SKILL.md)). Plain C third-party code can also be compiled by the UI's `.pro`: libwebp (decoder only), qrcodegen, SQLite ([06-third-party-libs.md](06-third-party-libs.md)).
 

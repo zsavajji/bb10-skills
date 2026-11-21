@@ -30,7 +30,7 @@ Evidence labels. **Q10** / **Classic (Q20)** = seen or measured on that phone (w
 
 ([skills/bb10-devices/SKILL.md](../skills/bb10-devices/SKILL.md), `bb10-ux/references/ui-guidelines.md` pages 120-124.) Panels and Active Frame sizes come from the guide; pixels, ppi, px/du and icons from the SDK profiles. All phones are 32-bit ARMv7; a process has about 2 GB of address space shared with graphics and network.
 
-The Classic's 291 ppi (guide: 294) and its 8 px/du are the only Classic numbers the apps rely on; HyperBerry tells it from the Q10 by `ui.du(1) < 9` on a 720x720 screen (`Composer.qml`).
+The Classic's 291 ppi (guide: 294) and its 8 px/du are the only Classic numbers the apps rely on; HyperBerry tells it from the Q10 by `ui.du(1) < 9` on a 720x720 screen ([`Composer.qml`](../samples/design/Composer.qml)).
 
 ## 2. Design units
 
@@ -39,7 +39,7 @@ The Classic's 291 ppi (guide: 294) and its 8 px/du are the only Classic numbers 
 | `ui.du(n)` | design units; QML's size function. The four apps use it for every size: 408 calls in HyperBerry's QML, 446 in Tengram's, 300 in Phoenix's, 134 in BBMusic's (counted in the four apps' QML assets) |
 | `ui.sdu(n)` | "rounded" (`bb10-cascades` skill). **No app uses it** |
 | `ui.px(n)` | true pixels, "for hairlines" (`bb10-ux` skill): 2 px separators, 6 px timeline track. Counted 63, 49, 10 and 5 times |
-| `UIConfig::du()` / `px()` in C++ | C++-drawn rows call `m_ui->du(1.5)` and `m_ui->px(2)` on the same `UIConfig` (`MessageCard.cpp`) |
+| `UIConfig::du()` / `px()` in C++ | C++-drawn rows call `m_ui->du(1.5)` and `m_ui->px(2)` on the same `UIConfig` ([`MessageCard.cpp`](../samples/lists/MessageCard.cpp)) |
 | `screenWidth`, `screenHeight` | `bb::device::DisplayInfo().pixelSize()` handed to QML as context properties (HyperBerry's `main.cpp`) |
 
 Rules from the apps:
@@ -55,10 +55,10 @@ Rules from the apps:
 inline float zoom() { return screen() == 1440 ? 1.2f : 1.0f; }
 inline float du(bb::cascades::UIConfig *ui, float n) { return ui->du(zoom() * n); }
 ```
-([CardStyle.h](../samples/design/CardStyle.h)) QML multiplies every `ui.du`, every `ui.px` from 3 px and every font percentage by `zoom` (`zoom * ui.du(9 * bar.big)` in `Composer.qml`). `pxZoom` (12/9 of the zoom) grows sizes measured in Q10 pixels (a fixed 381 px waveform, a 72 px disc). Unseen on a Passport; "builds; not tried on a Passport" (HyperBerry's status notes). Commits `41083fc` (a third) and `9c24d4d` (a fifth); the fifth wins.
+([CardStyle.h](../samples/design/CardStyle.h)) QML multiplies every `ui.du`, every `ui.px` from 3 px and every font percentage by `zoom` (`zoom * ui.du(9 * bar.big)` in [`Composer.qml`](../samples/design/Composer.qml)). `pxZoom` (12/9 of the zoom) grows sizes measured in Q10 pixels (a fixed 381 px waveform, a 72 px disc). Unseen on a Passport; "builds; not tried on a Passport" (HyperBerry's status notes). Commits `41083fc` (a third) and `9c24d4d` (a fifth); the fifth wins.
 - **A Classic composer** is a fifth bigger (`big = 1.2`, Classic 0.1.2.324: "it's fine").
-- **Pixel sizes measured on the Q10 are written as du** by dividing by 9; Tengram's viewer calls the stock bar 97 px, "11 du, and a du of slack" ([VideoViewer.qml](../samples/video/VideoViewer.qml)). BBMusic's `Hint.qml`: "Sizes are the Q10's px as design units (9 px each), so other screens scale them."
-- **The call screen's fixed stage.** HyperBerry's call sheet is laid out as a 720 px square (`px(n) = ui.px(n * screenWidth / 720)`) kept to the bottom; on a tall screen `extra = screenHeight - screenWidth` is added above it and the caller's picture fills it, "from the stock Z10's frames (2026-11-11)": measured on stock screenshots, not a Z10 (`CallSheet.qml`).
+- **Pixel sizes measured on the Q10 are written as du** by dividing by 9; Tengram's viewer calls the stock bar 97 px, "11 du, and a du of slack" ([VideoViewer.qml](../samples/video/VideoViewer.qml)). BBMusic's [`Hint.qml`](../samples/design/Hint.qml): "Sizes are the Q10's px as design units (9 px each), so other screens scale them."
+- **The call screen's fixed stage.** HyperBerry's call sheet is laid out as a 720 px square (`px(n) = ui.px(n * screenWidth / 720)`) kept to the bottom; on a tall screen `extra = screenHeight - screenWidth` is added above it and the caller's picture fills it, "from the stock Z10's frames (2026-11-11)": measured on stock screenshots, not a Z10 ([`CallSheet.qml`](../samples/design/CallSheet.qml)).
 - **Text sizes.** HyperBerry sizes text in percent of one shared style: body 105 %, small 85 % (capitals 20 px at 100 % on the Q10), times 72 %, times a setting 0.9 / 1.0 / 1.2 (`Settings::textScale`) and `zoom`. The guide's scale at the Z10: body 45 px, small 35, x small 30, xx small 24 (Slate Pro). No source says the apps read the system font-size setting; the guide says to honour it.
 
 ### Row heights the apps measured (Q10, 9 px/du)
@@ -69,7 +69,7 @@ inline float du(bb::cascades::UIConfig *ui, float n) { return ui->du(zoom() * n)
 | Line under it | 5 | 0.5 | same |
 | Chat list row | 85 + 2 separator | 9.4 | same |
 | Date header | 42 | 4.7 | same |
-| Action bar | 108 | 12 | same; Phoenix's compact bar buttons 108 px each, 12 du (`VideoPage.qml`, 0.1.0.24, 2026-11-21) |
+| Action bar | 108 | 12 | same; Phoenix's compact bar buttons 108 px each, 12 du ([`VideoPage.qml`](../samples/video/VideoPage.qml), 0.1.0.24, 2026-11-21) |
 | Stock action bar in Tengram's viewer | 97 | 11 | screenshot of the Back / Install bar ([VideoViewer.qml](../samples/video/VideoViewer.qml)); another bar variant than the one above |
 | Signature action | 104 circle | 11.5 | `ui.md` |
 | Action menu | 490 wide, 98 rows, 72 icons | 54 / 11 | `ui.md` |
@@ -115,7 +115,7 @@ How the four apps keep one layout:
 - HyperBerry's accent: HyperBerry's UI notes still say primary `#1bd862`, base `#14A249`; the code (2026-11-17) has primary `#12543a`, base the old bright green, "in case the trackpad's highlight follows the base (it was too dark with a dark one)". The Active Frame keeps `#1BD862` "which reads on black where Dark's #12543a accent would not". The code wins.
 - 10.3 palette: dark background `#000000`, text `#F0F0F0` / `#969696` / `#7D7D7D`, neutral `#323232` / `#282828`; bright `#FFFFFF`, `#323232` / `#646464` / `#828282`, `#F0F0F0` / `#E6E6E6`. Read colours from `ui.palette` so the UI follows the theme. Other guide colours: `#00A8DF` selection and information, `#00B800` positive, `#E6B400` attention, `#D60000` error. Pick colours that work in both themes; keep white or black text on buttons and title bars.
 - **LCD phones get a grey page by default, not black.** "Black only saves power on an OLED, the Q10's": the Classic and Passport default to Dark with the page `#181818` ("Settings > Appearance > Dark background", `Settings::darkGrey`, which reads `DisplayInfo().displayTechnology()` and treats a 1440 px width as LCD "in case it reports no technology"; 2026-11-19). Tengram has the same option (`nav.pageColor`, black or `#181818`; the photo and video viewers and the QR scanner stay black).
-- **Bright needs its own colours.** On Bright the quiet text is `#5e5e5e` and the text `#111111`, darker than the theme's, which "read faint there" (2026-11-17); sender-name colours have a deep twin per hue (`colors.h`, `kSendersBright`) because the light ones were unreadable. A press colour is "a step off `ui.palette.plain`": `#464646` on dark, `#DCDCDC` on bright.
+- **Bright needs its own colours.** On Bright the quiet text is `#5e5e5e` and the text `#111111`, darker than the theme's, which "read faint there" (2026-11-17); sender-name colours have a deep twin per hue ([`colors.h`](../samples/design/colors.h), `kSendersBright`) because the light ones were unreadable. A press colour is "a step off `ui.palette.plain`": `#464646` on dark, `#DCDCDC` on bright.
 - No source compares contrast or reading comfort of OLED against LCD beyond the above.
 
 ## 5. Input capabilities and what they ask of the design
@@ -153,8 +153,8 @@ Other traps (read [skills/bb10-pitfalls/SKILL.md](../skills/bb10-pitfalls/SKILL.
 ## 6. Performance as a design constraint
 
 - The phones have two Krait cores (Passport four) and Cascades draws on the UI thread: "keep the UI thread free; use as many worker threads as cores, not more" (`bb10-devices`). GPU drawing is about 2.5x faster than CPU rasterising (Skia, Q10).
-- **Lists, and anything with many elements, are drawn by C++ classes, not QML.** Tengram does it for the chat list (`ChatRow`) and for every message (`MessageCard`); HyperBerry started it (`bb::cascades::ListItemProvider`, step 8.6; HyperBerry's README: "for speed on the Q10's dual-core Krait"). The measurement that started it (Q10, 0.0.1.159, 2026-11-06): a real QML card with its menu 46 ms, without the menu 27 ms; the same in C++ 2 ms; a light text card 5 ms in QML and 0.5 ms in C++. Opening a chat took 1,018-3,107 ms on 0.0.1.156 and the last visible card came at 574-936 ms from the tap on 0.0.1.164, of which the system's slide alone is about 400 ms. The pattern, read from Tengram's `src/` ([samples/lists/](../samples/lists/): `ChatRows.h`, `MessageCards.h`, `MessageCard.h`, `AlbumBubble.h`):
-  - **A `ListItemProvider` per list** (`ChatRows`, `MessageCards`). `createItem(list, type)` builds a row once per type ("header" and "item" for chats; "header", "service", "loading", "text", "msg", "picture" for messages). `updateItem` refills a recycled row from the model's row with one call, `show(data.toMap())`, with setters in place of QML bindings. The page only keeps the `ListView` and sets `listItemProvider: MessageCards {}` (`ChatPage.qml`, `ChatList.qml`).
+- **Lists, and anything with many elements, are drawn by C++ classes, not QML.** Tengram does it for the chat list (`ChatRow`) and for every message (`MessageCard`); HyperBerry started it (`bb::cascades::ListItemProvider`, step 8.6; HyperBerry's README: "for speed on the Q10's dual-core Krait"). The measurement that started it (Q10, 0.0.1.159, 2026-11-06): a real QML card with its menu 46 ms, without the menu 27 ms; the same in C++ 2 ms; a light text card 5 ms in QML and 0.5 ms in C++. Opening a chat took 1,018-3,107 ms on 0.0.1.156 and the last visible card came at 574-936 ms from the tap on 0.0.1.164, of which the system's slide alone is about 400 ms. The pattern, read from Tengram's `src/` ([samples/lists/](../samples/lists/): `ChatRows.h`, `MessageCards.h`, [`MessageCard.h`](../samples/lists/MessageCard.h), [`AlbumBubble.h`](../samples/lists/AlbumBubble.h)):
+  - **A `ListItemProvider` per list** (`ChatRows`, `MessageCards`). `createItem(list, type)` builds a row once per type ("header" and "item" for chats; "header", "service", "loading", "text", "msg", "picture" for messages). `updateItem` refills a recycled row from the model's row with one call, `show(data.toMap())`, with setters in place of QML bindings. The page only keeps the `ListView` and sets `listItemProvider: MessageCards {}` ([`ChatPage.qml`](../samples/lists/ChatPage.qml), [`ChatList.qml`](../samples/lists/ChatList.qml)).
   - **One `CustomControl` per row kind** (`ChatRow`, `MessageCard`, `ServiceCard`, `LoadingCard`), which also inherits `ListItemListener` for the press tint (`select`, `activate`, `reset`). Its parts are plain members: `Container`, `Label`, `ImageView`, `ActionSet`.
   - **Build the parts once, then show and hide them.** `ChatRow` makes every part in its constructor, since the row is small, and `show()` only sets text and visibility. `MessageCard` makes the body text, time and ticks at once and every other part (sender, quote, bubbles, reaction chips) the first time a message needs it, then keeps it and hides it when the next message does not. Rows are recycled, so a part must never keep the previous row's content.
   - **Remember what was last set** (`m_timePlace`, `m_colMax`, `m_scale`, `m_photoPath`) and skip the setter when it is the same.
@@ -163,8 +163,8 @@ Other traps (read [skills/bb10-pitfalls/SKILL.md](../skills/bb10-pitfalls/SKILL.
   - **Rows reach the page through the `ListView` they are made for:** QML functions and properties by name (`m_list->property("slideId")`), and a change that needs every row refilled is a signal on the list (`textScaleChanged`, `roundChanged`) wired to the provider's `itemUpdatesNeeded`.
   - **The cost:** every later look change is C++, and a row is as wide as its content (spacers with `spaceQuota` stretch it). Pages stay QML: the call sheet, the composer and the settings.
 - **List cost findings** (HyperBerry's pitfalls notes): `TitleBarScrollBehavior.Sticky` also stopped the list being resized every frame, which made rows with five or more emoji lag; a `GridListLayout` list needs `headerMode: ListHeaderMode.Standard`; a list item cannot see the page's ids, so put what it needs on the `ListView` and reach it through `ListItem.view`; `listItemProvider` takes every type, headers included; a fast flick just after a page of rows arrives shows black for up to a second.
-- **Images and glyphs.** Cascades draws text with Monotype iType. A colour emoji font drawn at 109 ppem (10.7 MB) took 15 s and 177 MB on a dense page; derived at 32 ppem (1.1 MB) about 1 s. The emoji picker uses images, not text, "images never enter the glyph cache". Fix `ImageView`'s fade: `loadEffect: ImageViewLoadEffect.None`. Tengram's sticker frames cost 4-17 ms at 180 px ("on the S4", `tests/tgs_check.c`, in the body of tengram commit `f154d37`) and a photo-heavy chat froze 6 s until previews were made on a worker (`f154d37`).
-- Bitmaps drawn for the Q10 are scaled up on the Passport; "draw them at 2x if they look soft" (`Composer.qml`). **What a bigger screen costs is not measured in any source**: nothing was run on a Passport.
+- **Images and glyphs.** Cascades draws text with Monotype iType. A colour emoji font drawn at 109 ppem (10.7 MB) took 15 s and 177 MB on a dense page; derived at 32 ppem (1.1 MB) about 1 s. The emoji picker uses images, not text, "images never enter the glyph cache". Fix `ImageView`'s fade: `loadEffect: ImageViewLoadEffect.None`. Tengram's sticker frames cost 4-17 ms at 180 px ("on the S4", [`tests/tgs_check.c`](../samples/third-party/tgs_check.c), in the body of tengram commit `f154d37`) and a photo-heavy chat froze 6 s until previews were made on a worker (`f154d37`).
+- Bitmaps drawn for the Q10 are scaled up on the Passport; "draw them at 2x if they look soft" ([`Composer.qml`](../samples/design/Composer.qml)). **What a bigger screen costs is not measured in any source**: nothing was run on a Passport.
 - Unset Label margins give about 20 px between labels; a Label's box starts about 18 px above its capitals at 170 %; margins in a `DockLayout` do not count from the container's edge, use padding (`pitfalls.md`, `phase7.md`).
 - Keep the UI idle in the background: no CPU while not full screen (Tengram's ui-fork notes 3.8).
 
@@ -181,8 +181,8 @@ Other traps (read [skills/bb10-pitfalls/SKILL.md](../skills/bb10-pitfalls/SKILL.
 
 How the generators draw them:
 
-- HyperBerry's `gen-icons.py` (Pillow; not in the samples): "Draws the chat list's small marks ... white on transparent, so QML tints them with `ImageView.filterColor`. Each is drawn at 8x and scaled down to its size on the Q10: 3 du, 27 px tall." It also draws the app icon (`for px in (86, 90, 96, 110, 144)`) and the splash: the tile at 30 % of the width, centred on black, for each of the four resolutions. [gen-icon.py](../samples/ui/scripts/gen-app-icon.py) does the same for Tengram's paper-plane tangram; run for Tengram, HyperBerry's script would overwrite the icon with the green tile, so take its marks only (`ui-fork.md` 3.2).
-- BBMusic's and Phoenix's `gen-icons.py` (Phoenix's is [samples/ui/scripts/gen-icons.py](../samples/ui/scripts/gen-icons.py)): no library but zlib, shapes are functions `(x, y) -> bool` over the unit square, 4x4 supersampling, "action icons, white on transparent, 81 x 81 px (9 du on a Q10)". BBMusic's `splash()`: the tile's red over the screen, the glyph in the middle, a third of the short side. `gen-app-icon.py` (Pillow and ImageMagick): the flame in white on an orange `#FF6A1A` rounded square; a splash is the flame in orange on `#121212`, a third of the short side high.
+- HyperBerry's [`gen-icons.py`](../samples/ui/scripts/gen-icons-hyperberry.py) (Pillow; not in the samples): "Draws the chat list's small marks ... white on transparent, so QML tints them with `ImageView.filterColor`. Each is drawn at 8x and scaled down to its size on the Q10: 3 du, 27 px tall." It also draws the app icon (`for px in (86, 90, 96, 110, 144)`) and the splash: the tile at 30 % of the width, centred on black, for each of the four resolutions. [gen-icon.py](../samples/ui/scripts/gen-app-icon.py) does the same for Tengram's paper-plane tangram; run for Tengram, HyperBerry's script would overwrite the icon with the green tile, so take its marks only (`ui-fork.md` 3.2).
+- BBMusic's and Phoenix's `gen-icons.py` (Phoenix's is [samples/ui/scripts/gen-icons.py](../samples/ui/scripts/gen-icons.py)): no library but zlib, shapes are functions `(x, y) -> bool` over the unit square, 4x4 supersampling, "action icons, white on transparent, 81 x 81 px (9 du on a Q10)". BBMusic's `splash()`: the tile's red over the screen, the glyph in the middle, a third of the short side. [`gen-app-icon.py`](../samples/ui/scripts/gen-app-icon-phoenix.py) (Pillow and ImageMagick): the flame in white on an orange `#FF6A1A` rounded square; a splash is the flame in orange on `#121212`, a third of the short side high.
 - The splash exists because "the app stayed black from the tap to its first frame" (HyperBerry 0.0.1.166, 2026-11-06). Draw it on the theme's background.
 - Every icon colour must work on dark and bright: icons are white and tinted by `filterColor`, not baked.
 
@@ -207,7 +207,7 @@ The standard: **native first, stock-identical where a stock app exists**; measur
 - Physically available: **a Q10** (the owner's) and **a Classic**. Both are 720x720 keyboard phones; the Classic adds a trackpad and the Call/Menu/Back/End keys and has 8 px/du.
 - Everything for the **Passport** is from SDK profiles, the guide and a friend's screenshots (2026-11-14, -18). **Z10**: the call screen's tall-screen numbers come from stock frames. **Z30, Z3, Leap**: nothing.
 - So write "builds; not tried on a Passport / Z10 / Z30 / Z3 / Leap" for: the zoom, the tall-screen layouts, the on-screen keyboard, the Passport touch keyboard, the 144 px and 96 px icons, the 1440x1440 and 768x1280 splashes.
-- The skills advise a one-time log line for such paths ("on-screen keyboard: N px") and a comment that marks a constant as a guess. HyperBerry's `Composer.qml` has a `ponytail:` note of that kind.
+- The skills advise a one-time log line for such paths ("on-screen keyboard: N px") and a comment that marks a constant as a guess. HyperBerry's [`Composer.qml`](../samples/design/Composer.qml) has a `ponytail:` note of that kind.
 - The Q10 is the only phone whose Active Frame (310x211) and whose 9 px/du were measured.
 
 ## 10. Checklist for a new page
@@ -226,7 +226,7 @@ The standard: **native first, stock-identical where a stock app exists**; measur
 
 ## Where sources disagree
 
-- HyperBerry accent: HyperBerry's UI notes `#1bd862` as primary; HyperBerry's `Settings.cpp` and descriptor `#12543A`. Code wins.
+- HyperBerry accent: HyperBerry's UI notes `#1bd862` as primary; HyperBerry's [`Settings.cpp`](../samples/cookbook/Settings-hyperberry.cpp) and descriptor `#12543A`. Code wins.
 - Passport zoom: a third (`41083fc`), then a fifth (`9c24d4d`). The fifth wins.
 - Stock bar height: 97 px (Tengram viewer) against 108 px (HyperBerry's UI notes, Phoenix); different bars, both measured on the Q10.
 
@@ -235,7 +235,7 @@ The standard: **native first, stock-identical where a stock app exists**; measur
 - [samples/design/](../samples/design/): `CardStyle.h` (Passport zoom), `TapArea.qml` (the attempt that does not work on the Classic), `AppCover.qml`, `NowPlayingPage.qml`
 - [samples/lists/](../samples/lists/): `ChatRows.*`, `MessageCards.*` (C++ list rows)
 - [samples/descriptor/](../samples/descriptor/): the three bar-descriptor files
-- [samples/ui/scripts/](../samples/ui/scripts/): `gen-icons.py`, `gen-app-icon.py`
+- [samples/ui/scripts/](../samples/ui/scripts/): `gen-icons.py`, [`gen-app-icon.py`](../samples/ui/scripts/gen-app-icon-phoenix.py)
 - [samples/video/VideoViewer.qml](../samples/video/VideoViewer.qml)
 - Skills: [bb10-devices](../skills/bb10-devices/SKILL.md), [bb10-ux](../skills/bb10-ux/SKILL.md), [bb10-ux/references/ui-guidelines.md](../skills/bb10-ux/references/ui-guidelines.md), [bb10-pitfalls](../skills/bb10-pitfalls/SKILL.md), [bb10-cascades](../skills/bb10-cascades/SKILL.md)
 - Git commits `f154d37`, `74bb400`, `a908ef1`, `41083fc`, `9c24d4d`, `006c696`

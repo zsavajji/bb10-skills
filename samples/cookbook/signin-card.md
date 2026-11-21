@@ -1,6 +1,6 @@
 # The sign-in card (excerpt from bbmusic)
 
-The invoke target in the bar descriptor (bbmusic/app/bar-descriptor.xml): another app starts the UI as a card.
+The invoke target in the bar descriptor (BBMusic's bar descriptor): another app starts the UI as a card.
 
 ```xml
     <!-- The sign-in card (docs/signin-card.md): the UI's entry point, started as a card. -->
@@ -16,7 +16,7 @@ The invoke target in the bar descriptor (bbmusic/app/bar-descriptor.xml): anothe
 
 ```
 
-The startupMode check in main() (bbmusic/app/src/main.cpp): the scene is the card's page instead of the tabs.
+The startupMode check in main() (BBMusic's main.cpp): the scene is the card's page instead of the tabs.
 
 ```cpp
     bb::system::InvokeManager invoker;

@@ -1,0 +1,578 @@
+Group calls, ours (not whatsapp-light's); applied by scripts/hypermeow-work.sh after meowcaller.patch.
+1. One member with no devices (an account that left WhatsApp) no longer fails the whole group
+   offer: discoverGroupParticipants leaves them out with a warning, and placeGroupCall dials only
+   the targets that remain (reachableTargets, still at least two).
+2. An offer that is already over (is_call_ended, terminate_reason) is ignored before the group
+   branch, which had no such check: a group call that rang while the engine was off was
+   preaccepted and rung as live. The 1:1 path had the check already; it moved into isEndedOffer.
+3. Audio of payload type 121 is MLow in a SplitRed (RED) container: group-call peers switch to it
+   after their first packets, and decoded as a bare frame it was 10 ms of silence (0.0.1.248's
+   diagnostics). DecodeAudio, the one decode path of 1:1 and group calls, sets the decoder's
+   redundancy from the payload type.
+4. Group playout popped and dropped words (0.0.1.251): the mixer sent nothing while nobody spoke, so
+   the sink ran dry; a pause's frame decoded to 10 ms for its packet's 60; and 120 ms in, 240 ms at
+   most was short of the ~125 ms the packets arrive off pace. Now silence keeps the pace, a short
+   decode is padded to the frame, and the queues fill 180 ms and hold 480.
+5. The mix is paced by the time gone, not by its 10 ms ticker, which drops late ticks: on 253 the
+   sink still ran dry every ~2 s. A line at the call's end gives chunks and frames against the time.
+6. A queue that runs out mid-speech holds a frame more from then on, up to 360 ms: on 254 one
+   person paused once, their packets later than the 180 ms held. Running out in a pause (the
+   peer sends nothing while silent) changes nothing. Check: hyperberry_mix_test.go.
+7. A group call is mixed from its first remote participant, not its second: the switch from the
+   direct playout emptied the first one's queue, ~0.3 s quiet as the second joined. An error ack
+   is logged whole.
+8. 207 on a group offer's ack is multi-status (the offer missed some devices, 427 each), not a
+   refusal: the ack is read as the group's first roster, relay and settings, which were dropped
+   (media waited ~7 s for a later update). The missed devices are logged. Check:
+   TestHyperberryGroupAck207.
+9. (7e V1) Call.RequestParticipantKeyframe(ssrc) sends a PLI to one participant's video SSRC
+   through the media's video SRTCP sender; a group call's tile that starts showing a sender needs
+   their next IDR. Check: TestHyperberryRequestParticipantKeyframe.
+Tests: TestReachableTargetsDropsUsersDiscoveryLeftOut, TestIsEndedOffer.
+
+--- a/engine.go
++++ b/engine.go
+@@ -626,6 +626,12 @@
+ // OnIncomingCall listener. Only the <accept> is deferred to Answer.
+ func (e *engine) onOffer(ev *events.CallOffer) {
+ 	// Source of truth: https://github.com/purpshell/meowcaller/blob/33854919e64bdd4b053054ac9764d8fc63027b57/datasheets/voip-group-invite-accept.md#L28-L40
++	// hyperberry patch: the ended check comes before the group branch, which had none, so a
++	// group call that rang while we were away is no longer preaccepted and rung as live.
++	if isEndedOffer(ev.Data) {
++		e.c.log.Warn().Str("call_id", ev.CallID).Msg("ignoring already-ended offer; not a live call")
++		return
++	}
+ 	groupSnapshot, isGroup, groupErr := signaling.ParseGroupInviteSnapshot(ev.Data)
+ 	if groupErr != nil {
+ 		e.c.log.Warn().Err(groupErr).Str("call_id", ev.CallID).Msg("parse inbound group offer failed")
+@@ -636,15 +642,6 @@
+ 		return
+ 	}
+ 
+-	// A "call ended" notification arrives offer-shaped, carrying is_call_ended/
+-	// terminate_reason (e.g. accepted_elsewhere). It is not a live call — engaging it
+-	// (preaccept/accept) just earns an "accept error 500". Ignore it.
+-	oag := ev.Data.AttrGetter()
+-	if oag.OptionalString("is_call_ended") == "1" || oag.OptionalString("terminate_reason") != "" {
+-		e.c.log.Warn().Str("call_id", ev.CallID).Msg("ignoring already-ended offer; not a live call")
+-		return
+-	}
+-
+ 	callKey, err := decryptInboundCallKey(context.Background(), e.c.wa, ev)
+ 	if err != nil {
+ 		e.c.log.Warn().Err(err).Str("call_id", ev.CallID).Msg("decrypt callKey failed")
+@@ -711,6 +708,14 @@
+ 	}
+ }
+ 
++// isEndedOffer: a "call ended" notification arrives offer-shaped, carrying is_call_ended/
++// terminate_reason (e.g. accepted_elsewhere). It is not a live call — engaging it
++// (preaccept/accept) just earns an "accept error 500".
++func isEndedOffer(offer *waBinary.Node) bool {
++	ag := offer.AttrGetter()
++	return ag.OptionalString("is_call_ended") == "1" || ag.OptionalString("terminate_reason") != ""
++}
++
+ func (e *engine) onGroupOffer(ev *events.CallOffer, update groupCallUpdate) {
+ 	// Source of truth: https://github.com/purpshell/meowcaller/blob/33854919e64bdd4b053054ac9764d8fc63027b57/datasheets/voip-group-invite-accept.md#L28-L40
+ 	peer := ev.CallCreator
+--- a/engine_group_api.go
++++ b/engine_group_api.go
+@@ -35,6 +35,9 @@
+ 	}
+ 	participants, err := e.discoverGroupParticipants(ctx, append([]types.JID{self.ToNonAD()}, selected...))
+ 	if err != nil {
++		return nil, err
++	}
++	if selected, err = reachableTargets(selected, participants); err != nil {
+ 		return nil, err
+ 	}
+ 	callID := newCallID()
+@@ -309,7 +312,10 @@
+ 		user = user.ToNonAD()
+ 		userDevices := byUser[user]
+ 		if len(userDevices) == 0 {
+-			return nil, fmt.Errorf("meowcaller: participant %s has no reachable devices", user)
++			// hyperberry patch: one member with no devices (an account that left WhatsApp) no
++			// longer fails the call; placeGroupCall drops them from the targets too.
++			e.c.log.Warn().Str("participant", user.String()).Msg("group call: no reachable devices, left out")
++			continue
+ 		}
+ 		participant := signaling.GroupCallParticipant{JID: user}
+ 		for _, device := range userDevices {
+@@ -325,6 +331,25 @@
+ 	return participants, nil
+ }
+ 
++// reachableTargets is selected without the users discovery left out (hyperberry patch). Fewer than
++// two remote targets left is the same error as asking for fewer than two.
++func reachableTargets(selected []types.JID, participants []signaling.GroupCallParticipant) ([]types.JID, error) {
++	kept := make(map[types.JID]struct{}, len(participants))
++	for _, p := range participants {
++		kept[p.JID.ToNonAD()] = struct{}{}
++	}
++	out := make([]types.JID, 0, len(selected))
++	for _, t := range selected {
++		if _, ok := kept[t]; ok {
++			out = append(out, t)
++		}
++	}
++	if len(out) < 2 {
++		return nil, errors.New("meowcaller: group call requires at least two reachable remote targets")
++	}
++	return out, nil
++}
++
+ func parseOptionalGroupJID(raw string) (types.JID, error) {
+ 	// Source of truth: https://github.com/purpshell/meowcaller/blob/ceaa2156015e8f24e09328fb7a9c89203295efff/datasheets/api-initial-group-call.md#L82-L96
+ 	raw = strings.TrimSpace(raw)
+--- a/public_group_api_test.go
++++ b/public_group_api_test.go
+@@ -4,7 +4,9 @@
+ 	"bytes"
+ 	"testing"
+ 
++	waBinary "github.com/polymorfa/hypermeow/binary"
+ 	"github.com/polymorfa/hypermeow/types"
++	"github.com/purpshell/meowcaller/signaling"
+ )
+ 
+ func TestGroupStateSnapshotsOwnNestedSlicesAndRejectStaleTransactions(t *testing.T) {
+@@ -229,3 +231,28 @@
+ 		t.Fatalf("waiting-room transition stopped at %v", session.Phase())
+ 	}
+ }
++
++func TestReachableTargetsDropsUsersDiscoveryLeftOut(t *testing.T) {
++	a, b, c := types.NewJID("1", "lid"), types.NewJID("2", "lid"), types.NewJID("3", "lid")
++	got, err := reachableTargets([]types.JID{a, b, c}, []signaling.GroupCallParticipant{{JID: a}, {JID: c}})
++	if err != nil || len(got) != 2 || got[0] != a || got[1] != c {
++		t.Fatalf("got %v, %v", got, err)
++	}
++	if _, err = reachableTargets([]types.JID{a, b, c}, []signaling.GroupCallParticipant{{JID: a}}); err == nil {
++		t.Fatal("one reachable target left must fail")
++	}
++}
++
++func TestIsEndedOffer(t *testing.T) {
++	for attrs, want := range map[string]bool{"": false, "is_call_ended": true, "terminate_reason": true} {
++		n := &waBinary.Node{Tag: "offer", Attrs: waBinary.Attrs{}}
++		if attrs == "is_call_ended" {
++			n.Attrs[attrs] = "1"
++		} else if attrs != "" {
++			n.Attrs[attrs] = "accepted_elsewhere"
++		}
++		if got := isEndedOffer(n); got != want {
++			t.Fatalf("%q: got %v", attrs, got)
++		}
++	}
++}
+--- a/group_audio_mixer.go
++++ b/group_audio_mixer.go
+@@ -6,14 +6,23 @@
+ )
+ 
+ const (
+-	participantAudioMixChunkSamples     = SampleRate / 100
+-	participantAudioMixerPrefillSamples = 2 * FrameSamples
+-	participantAudioMixerMaxSamples     = 4 * FrameSamples
++	participantAudioMixChunkSamples = SampleRate / 100
++	// hyperberry patch (7d): a group call's packets arrive up to ~125 ms off their pace (p99, the
++	// Q10 through the relay, 0.0.1.251); 120 ms in and 240 ms at most ran dry and dropped words.
++	participantAudioMixerPrefillSamples = 3 * FrameSamples
++	participantAudioMixerMaxSamples     = 8 * FrameSamples
++	participantAudioMixerMaxTarget      = 6 * FrameSamples
+ )
+ 
+ type participantAudioMixQueue struct {
+ 	pending []float32
+ 	started bool
++	// hyperberry patch (7d): how much is held before playing again, raised a frame each time the
++	// queue runs out mid-speech (their packets came later than it held), up to
++	// participantAudioMixerMaxTarget; a pause's running out (zeros last) leaves it. Not lowered
++	// within a call. speaking: the last chunk played had sound.
++	target   int
++	speaking bool
+ }
+ 
+ type participantAudioMixer struct {
+@@ -38,7 +47,9 @@
+ 
+ func shouldStartParticipantMixing(activeParticipantIDs []string) bool {
+ 	// Source of truth: https://github.com/purpshell/meowcaller/blob/ca4ba64503efeb86c337ee37cb00c4da540c632c/datasheets/group-media-receive.md#L24-L35
+-	return len(activeParticipantIDs) > 1
++	// hyperberry patch (7d): from the first one. Switching from the direct playout when a second
++	// joined emptied the first one's queue, and they went quiet while it filled (~0.3 s).
++	return len(activeParticipantIDs) > 0
+ }
+ 
+ func (m *participantAudioMixer) Add(participantID string, pcm []float32) bool {
+@@ -56,7 +67,7 @@
+ 	}
+ 	queue := m.streams[participantID]
+ 	if queue == nil {
+-		queue = &participantAudioMixQueue{}
++		queue = &participantAudioMixQueue{target: participantAudioMixerPrefillSamples}
+ 		m.streams[participantID] = queue
+ 	}
+ 	if len(pcm) >= participantAudioMixerMaxSamples {
+@@ -104,31 +115,36 @@
+ 	slices.Sort(participantIDs)
+ 
+ 	mixed := make([]float32, participantAudioMixChunkSamples)
+-	contributed := false
+ 	for _, participantID := range participantIDs {
+ 		queue := m.streams[participantID]
+ 		if !queue.started {
+-			if len(queue.pending) < participantAudioMixerPrefillSamples {
++			if len(queue.pending) < queue.target {
+ 				continue
+ 			}
+ 			queue.started = true
+ 		}
+ 		if len(queue.pending) < participantAudioMixChunkSamples {
+ 			queue.started = false
++			if queue.speaking && queue.target < participantAudioMixerMaxTarget {
++				queue.target += FrameSamples
++			}
++			queue.speaking = false
+ 			continue
+ 		}
++		queue.speaking = false
+ 		for i := range mixed {
+ 			mixed[i] += queue.pending[i]
++			if queue.pending[i] != 0 {
++				queue.speaking = true
++			}
+ 		}
+ 		queue.pending = queue.pending[participantAudioMixChunkSamples:]
+ 		if len(queue.pending) == 0 {
+ 			queue.pending = nil
+ 		}
+-		contributed = true
+ 	}
+-	if !contributed {
+-		return nil, false
+-	}
++	// hyperberry patch (7d): silence while nobody speaks, so the sink keeps its pace instead of
++	// running dry and popping as it starts again.
+ 	for i, sample := range mixed {
+ 		if sample > 1 {
+ 			mixed[i] = 1
+--- a/group_media_receive.go
++++ b/group_media_receive.go
+@@ -6,11 +6,11 @@
+ 	"slices"
+ 	"sync"
+ 
++	"github.com/polymorfa/hypermeow/types"
+ 	"github.com/purpshell/meowcaller/mlow"
+ 	"github.com/purpshell/meowcaller/rtp"
+ 	"github.com/purpshell/meowcaller/srtp"
+ 	"github.com/rs/zerolog"
+-	"github.com/polymorfa/hypermeow/types"
+ )
+ 
+ type participantAudioDecoder interface {
+@@ -868,8 +868,22 @@
+ 			Str("participant_id", receiver.participantID).
+ 			Msg("participant audio failed authentication")
+ 		return decodedParticipantAudio{}, false
++	}
++	// hyperberry patch (7d): payload type 121 is MLow in a SplitRed (RED) container, which
++	// group-call peers send after their first packets; decoded as a bare frame it was silence.
++	if d, ok := receiver.decoder.(interface{ SetRedundancy(int) }); ok {
++		red := 0
++		if authenticatedHeader.PayloadType == 121 {
++			red = 1
++		}
++		d.SetRedundancy(red)
+ 	}
+ 	pcm := receiver.decoder.Decode(payload)
++	// hyperberry patch (7d): a pause's frame decodes to 10 ms but stands for the packet's 60;
++	// short, it drained the mixer's queue.
++	if len(pcm) < FrameSamples {
++		pcm = append(pcm, make([]float32, FrameSamples-len(pcm))...)
++	}
+ 	return decodedParticipantAudio{
+ 		ParticipantID: receiver.participantID,
+ 		UserJID:       receiver.userJID, DeviceJID: receiver.deviceJID,
+--- a/engine_media.go
++++ b/engine_media.go
+@@ -588,10 +588,23 @@
+ 	audioMixer := newParticipantAudioMixer()
+ 	var audioSinkFramer participantAudioSinkFramer
+ 	go func() {
+-		ticker := time.NewTicker(time.Duration(participantAudioMixChunkSamples) * time.Second / SampleRate)
++		chunkDur := time.Duration(participantAudioMixChunkSamples) * time.Second / SampleRate
++		ticker := time.NewTicker(chunkDur)
+ 		defer ticker.Stop()
+ 		playoutStarted := false
+ 		var writeFailures uint64
++		// hyperberry patch (7d): paced by the time gone, not by the ticks. A late tick is dropped by
++		// Go's ticker, not made up, and on the Q10 the mix fell behind: the sink ran dry every ~2 s
++		// (0.0.1.253). Each wake mixes every chunk due since mixing began; a stall of over 0.5 s
++		// starts the count again rather than bursting.
++		var mixStart time.Time
++		var mixed, frames, catchups uint64
++		defer func() {
++			if !mixStart.IsZero() {
++				log.Info().Dur("elapsed", time.Since(mixStart)).Uint64("chunks", mixed).Uint64("frames", frames).
++					Uint64("catchups", catchups).Msg("participant mix pacing")
++			}
++		}()
+ 		for {
+ 			select {
+ 			case <-ctx.Done():
+@@ -605,26 +618,39 @@
+ 			if sink == nil {
+ 				continue
+ 			}
+-			chunk, ok := audioMixer.MixChunk()
+-			if !ok {
+-				continue
++			if mixStart.IsZero() {
++				mixStart = time.Now()
+ 			}
+-			frame, ok := audioSinkFramer.Push(chunk)
+-			if !ok {
+-				continue
++			due := uint64(time.Since(mixStart)/chunkDur) + 1
++			if due-mixed > 50 {
++				mixStart, mixed, due = time.Now(), 0, 1
+ 			}
+-			if err := sink.WriteFrame(frame); err != nil {
+-				if writeFailures++; writeFailures == 1 {
+-					log.Warn().Err(err).Msg("failed to write mixed WhatsApp audio")
+-				}
+-				continue
++			if due-mixed > 1 {
++				catchups++
+ 			}
+-			if !playoutStarted {
+-				playoutStarted = true
+-				log.Info().
+-					Int("prefill_ms", participantAudioMixerPrefillSamples*1000/SampleRate).
+-					Int("chunk_ms", participantAudioMixChunkSamples*1000/SampleRate).
+-					Msg("started participant-mixed inbound audio playout")
++			for ; mixed < due; mixed++ {
++				chunk, ok := audioMixer.MixChunk()
++				if !ok {
++					continue
++				}
++				frame, ok := audioSinkFramer.Push(chunk)
++				if !ok {
++					continue
++				}
++				if err := sink.WriteFrame(frame); err != nil {
++					if writeFailures++; writeFailures == 1 {
++						log.Warn().Err(err).Msg("failed to write mixed WhatsApp audio")
++					}
++					continue
++				}
++				frames++
++				if !playoutStarted {
++					playoutStarted = true
++					log.Info().
++						Int("prefill_ms", participantAudioMixerPrefillSamples*1000/SampleRate).
++						Int("chunk_ms", participantAudioMixChunkSamples*1000/SampleRate).
++						Msg("started participant-mixed inbound audio playout")
++				}
+ 			}
+ 		}
+ 	}()
+@@ -879,7 +905,20 @@
+ 		pipe: txVideoPipe, stream: rtp.NewVideoRtpStream(videoSelfSsrc, defaultVideoRtpStepSamples),
+ 		ch: ch, ssrc: videoSelfSsrc, callID: callID, keyframeRequired: true,
+ 		log: log, diag: e.c.diag,
++	}
++	// hyperberry patch (7e V1): a keyframe request to one participant's video SSRC, from outside
++	// the loop (a group call's tile that starts showing a sender needs their next IDR).
++	e.mu.Lock()
++	if m := e.calls[callID]; m != nil {
++		m.keyframe = func(ssrc uint32) error {
++			packet, err := videoRtcp.pictureLossIndication(ssrc)
++			if err == nil {
++				_, err = ch.Send(packet)
++			}
++			return err
++		}
+ 	}
++	e.mu.Unlock()
+ 	txAppDataPipe, err := NewMediaPipeline(callKey, selfLID, peerLID, appDataSelfSsrc, FrameSamples, WithLogger(log))
+ 	if err != nil {
+ 		return err
+--- /dev/null
++++ b/hyperberry_mix_test.go	2026-11-11 23:16:18
+@@ -0,0 +1,87 @@
++package meowcaller
++
++import (
++	"testing"
++
++	waBinary "github.com/polymorfa/hypermeow/binary"
++	"github.com/polymorfa/hypermeow/types"
++)
++
++// A queue that runs out mid-speech holds a frame more; one that runs out after silence doesn't.
++func TestHyperberryMixTarget(t *testing.T) {
++	m := newParticipantAudioMixer()
++	tone := make([]float32, 3*FrameSamples)
++	for i := range tone {
++		tone[i] = 0.1
++	}
++	drain := func() {
++		for i := 0; i < 400; i++ {
++			m.MixChunk()
++		}
++	}
++	m.Add("a", tone)
++	drain()
++	if got := m.streams["a"].target; got != 4*FrameSamples {
++		t.Fatalf("after speech ran out: target %d, want %d", got, 4*FrameSamples)
++	}
++	m.Add("a", make([]float32, 4*FrameSamples))
++	drain()
++	if got := m.streams["a"].target; got != 4*FrameSamples {
++		t.Fatalf("after silence ran out: target %d, want %d", got, 4*FrameSamples)
++	}
++	for i := 0; i < 5; i++ {
++		m.Add("a", tone)
++		m.Add("a", tone[:FrameSamples])
++		drain()
++	}
++	if got := m.streams["a"].target; got != participantAudioMixerMaxTarget {
++		t.Fatalf("target %d, want the cap %d", got, participantAudioMixerMaxTarget)
++	}
++}
++
++// A group offer's ack with error 207 (a device missed, 427) is the group's first roster, not a refusal.
++func TestHyperberryGroupAck207(t *testing.T) {
++	eng, call, creator := testGroupEngine("GROUP")
++	eng.calls["GROUP"].direction = CallDirectionOutgoing
++	participant := types.NewJID("200", types.HiddenUserServer)
++	ack := &waBinary.Node{
++		Tag:   "ack",
++		Attrs: waBinary.Attrs{"class": "call", "type": "offer", "id": "REQUEST", "error": "207"},
++		Content: []waBinary.Node{{
++			Tag: "group_info",
++			Attrs: waBinary.Attrs{
++				"call-id": "GROUP", "call-creator": creator,
++				"transaction-id": "6", "connected-limit": "32", "media": "audio", "joinable": "1",
++			},
++			Content: []waBinary.Node{{
++				Tag:   "user",
++				Attrs: waBinary.Attrs{"jid": participant, "state": "outgoing"},
++				Content: []waBinary.Node{
++					{Tag: "device", Attrs: waBinary.Attrs{"jid": types.NewADJID("200", 0, 0)}},
++					{Tag: "device", Attrs: waBinary.Attrs{"jid": types.NewADJID("200", 0, 46), "error": "427"}},
++				},
++			}},
++		}},
++	}
++	eng.onCallAck(ack)
++	state, ok := call.GroupState()
++	if !ok || state.TransactionID != 6 || len(state.Participants) != 1 {
++		t.Fatalf("group state = %#v, present=%v", state, ok)
++	}
++	if eng.calls["GROUP"] == nil {
++		t.Fatal("the call ended on a 207")
++	}
++}
++
++// A keyframe request goes to the media's PLI sender with the SSRC asked, and fails with no media.
++func TestHyperberryRequestParticipantKeyframe(t *testing.T) {
++	eng, call, _ := testGroupEngine("GROUP")
++	if err := call.RequestParticipantKeyframe(7); err == nil {
++		t.Fatal("a keyframe request with no media running succeeded")
++	}
++	var got uint32
++	eng.calls["GROUP"].keyframe = func(ssrc uint32) error { got = ssrc; return nil }
++	if err := call.RequestParticipantKeyframe(7); err != nil || got != 7 {
++		t.Fatalf("keyframe request: err %v, ssrc %d", err, got)
++	}
++}
+--- a/engine.go
++++ b/engine.go
+@@ -63,8 +63,9 @@
+ 	localOrientation  int          // wa-poc patch: CVO quarter turns stamped on outgoing video RTP
+ 	appDataTx         *appDataSender
+ 	rekeyPeer         func(string) error
+-	link              *relayLink            // wa-poc patch: the media's relay link, live while media runs
+-	lastCheck         *events.CallTransport // wa-poc patch: the peer's latest transport check
++	link              *relayLink              // wa-poc patch: the media's relay link, live while media runs
++	keyframe          func(ssrc uint32) error // hyperberry patch (7e): a PLI to one SSRC, live while media runs
++	lastCheck         *events.CallTransport   // wa-poc patch: the peer's latest transport check
+ 	group             bool
+ 	groupUpdate       *groupCallUpdate
+ 	groupReceivers    *participantReceiveRegistry
+@@ -1149,12 +1150,29 @@
+ // allocation arrives here (whatsmeow otherwise drops the ack), which is what lets the
+ // caller bring up media. An error ack tears the call down.
+ func (e *engine) onCallAck(ack *waBinary.Node) {
+-	if errCode := ack.AttrGetter().String("error"); errCode != "" {
++	errCode := ack.AttrGetter().String("error")
++	// hyperberry patch (7d): 207 on a group offer's ack is multi-status, not a refusal: the ack
++	// carries the roster, relay and voip_settings, and errors only on the devices the offer
++	// missed (427 on a user's linked devices, 0.0.1.257). Read as a refusal, all of that was
++	// dropped and media waited ~7 s for a later group update.
++	if gi := findChild(ack, "group_info"); errCode == "207" && gi != nil {
++		var missed []string
++		for _, u := range gi.GetChildrenByTag("user") {
++			for _, d := range u.GetChildrenByTag("device") {
++				if de := d.AttrGetter().OptionalString("error"); de != "" {
++					missed = append(missed, d.AttrGetter().OptionalString("jid")+"="+de)
++				}
++			}
++		}
++		e.c.log.Info().Strs("missed_devices", missed).Msg("group offer delivered, some devices missed (207)")
++		errCode = ""
++	}
++	if errCode != "" {
+ 		callID := ""
+ 		if en := findChild(ack, "error"); en != nil {
+ 			callID = en.AttrGetter().String("call-id")
+ 		}
+-		e.c.log.Warn().Str("call_id", callID).Str("error_code", errCode).Msg("call rejected by server")
++		e.c.log.Warn().Str("call_id", callID).Str("error_code", errCode).Str("ack", ack.String()).Msg("call rejected by server")
+ 		e.finishCall(callID, "server:"+errCode)
+ 		return
+ 	}
+--- a/livecall.go
++++ b/livecall.go
+@@ -2,11 +2,12 @@
+ 
+ import (
+ 	"context"
++	"errors"
+ 	"sync"
+ 	"time"
+ 
+-	"github.com/purpshell/meowcaller/signaling"
+ 	"github.com/polymorfa/hypermeow/types"
++	"github.com/purpshell/meowcaller/signaling"
+ )
+ 
+ // Call is one live direct or group call. A direct call may become an ad-hoc group
+@@ -300,6 +301,21 @@
+ // StopVideo stops this client's outbound video while preserving peer video and audio.
+ func (c *Call) StopVideo() error {
+ 	return c.eng.transitionVideo(c.id, signaling.VideoStateStopped)
++}
++
++// RequestParticipantKeyframe asks the sender of a video SSRC for a keyframe (an RTCP PLI). A
++// group call's view that starts showing a sender needs their next IDR. hyperberry patch (7e V1).
++func (c *Call) RequestParticipantKeyframe(ssrc uint32) error {
++	c.eng.mu.Lock()
++	var fn func(uint32) error
++	if m := c.eng.calls[c.id]; m != nil {
++		fn = m.keyframe
++	}
++	c.eng.mu.Unlock()
++	if fn == nil {
++		return errors.New("meowcaller: no media running for a keyframe request")
++	}
++	return fn(ssrc)
+ }
+ 
+ // SetVideoEnabled mutes or unmutes this client's outbound camera flow with state 0/1.

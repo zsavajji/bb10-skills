@@ -101,8 +101,8 @@ New apps ship the user's usual language set, and the source strings are written 
 | App | `.ts` languages | Source |
 |---|---|---|
 | phoenix | it fr de pl ru hi vi id | [samples/ui/app.pro](../samples/ui/app.pro) |
-| bbmusic | en it fr de pl ru uk hi vi | BBMusic's `.pro` |
-| hyperberry | it fr de es ru uk pl hi id vi | HyperBerry's `.pro` |
+| bbmusic | en it fr de pl ru uk hi vi | BBMusic's [`.pro`](../samples/ui/bbmusic.pro) |
+| hyperberry | it fr de es ru uk pl hi id vi | HyperBerry's [`.pro`](../samples/ui/hyperberry.pro) |
 | tengram | it fr de es ru uk pl hi id vi | [samples/ui/app-gcc483.pro](../samples/ui/app-gcc483.pro) |
 
 The common core is it, fr, de, pl, ru, hi, vi, id; use `en, it, fr, de, pl, ru, hi, vi, id` for a new app. An existing app keeps its own list (HyperBerry and Tengram also have es and uk, BBMusic uk). How `lupdate`/`lrelease` are run: [07-ui-build.md](07-ui-build.md).

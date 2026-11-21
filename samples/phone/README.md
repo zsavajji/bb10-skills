@@ -11,3 +11,5 @@ Not built in this repo; read as reference. Used by docs/10 and 11. Some files me
 | engine_client.py | Tengram, `tests/engine_client.py` (5a65cdf) | verbatim | Protocol client for a headless engine through an SSH tunnel |
 | measure-phone.py | bbmusic, `scripts/measure-phone.py` (1d80813) | verbatim | CPU and memory snapshots over SSH (`pidin`); app-specific driver kept as a pattern |
 | sim-driver.py | HyperBerry, `scripts/sim.py` (df45afc) | verbatim | Drives the app UI on the phone from the Mac; app-specific driver kept as a pattern |
+| push-phone.sh | BBMusic, `scripts/push-phone.sh` (1d80813) | verbatim | Copy a binary to the phone over ssh and make it runnable |
+| engine_smoke.py | Tengram, `tests/engine_smoke.py` (5a65cdf) | verbatim | Smoke test of a headless engine on the phone |

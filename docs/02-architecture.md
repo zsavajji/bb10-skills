@@ -142,7 +142,7 @@ Trade-off, as HyperBerry's design notes states it:
 | Used by | tengram, bbmusic, phoenix | hyperberry |
 | Reason recorded | tengram: "TDLib is C++"; "a Go runtime would eat the margin" under the headless cap (Tengram's notes Decisions, Risks 2). bbmusic: "there is no Go library we need" | hyperberry's protocol library (hypermeow/whatsmeow) is Go (BBMusic's plan §3) |
 | Binary size | bbmusic gate probe with libcurl, wolfSSL and the C++ runtime: 3.0 MB, 2.4 MB stripped. Tengram: 37 MB static with TDLib | hyperberry: 15.6 MB (with SQLite via cgo); 14 MB with `CGO_ENABLED=0` (HyperBerry's phase 0 notes 0.1) |
-| Memory under the headless cap | plain malloc heap; ASan'd on the Mac | a garbage-collected heap inside a headless memory class "where running out kills the process" (BBMusic's plan §3). Hyperberry: out of memory is not recoverable in Go; the runtime also writes one byte to every new page (1.7 ms per MB); `SetMemoryLimit(24 MB)` was set in `main.go` and later made to follow the real cap (four fifths of it) |
+| Memory under the headless cap | plain malloc heap; ASan'd on the Mac | a garbage-collected heap inside a headless memory class "where running out kills the process" (BBMusic's plan §3). Hyperberry: out of memory is not recoverable in Go; the runtime also writes one byte to every new page (1.7 ms per MB); `SetMemoryLimit(24 MB)` was set in [`main.go`](../samples/engine-go/main.go) and later made to follow the real cap (four fifths of it) |
 | Native APIs (libasound, BPS, SQLite) | direct calls | cgo for each (libopus, libasound, BPS, SQLite) |
 | Dependency risk | none on a fork | "a dependency on the go-qnx fork" |
 | Memory safety | parsers of network bytes have none: run every test under ASan/UBSan on the Mac, fuzz the binary parsers | yes |
@@ -219,7 +219,7 @@ BBMusic (BBMusic's phase 0 notes, BBMusic's plan §9):
 | 0.6 routing and interruptions | Q10 | headphones: passed | a stream stays on the output it was opened on; the engine must watch the device; phone call and Bluetooth untested |
 | 0.7 WebView sign-in | Q10 | not started; a TV-style device-code probe was run on the Mac | |
 
-Also built for the gates: a **gate app** (BBMusic's gate app, `scripts/build-gate.sh`): a headless engine plus a one-page UI, to test what needs an installed `.bar` (headless launch, token handshake, app swiped away). Hyperberry's 0.3 app was the same idea.
+Also built for the gates: a **gate app** (BBMusic's, in [samples/gate-app/](../samples/gate-app/), [`scripts/build-gate.sh`](../samples/gate-app/build-gate.sh)): a headless engine plus a one-page UI, to test what needs an installed `.bar` (headless launch, token handshake, app swiped away). Hyperberry's 0.3 app was the same idea.
 
 ## Samples
 

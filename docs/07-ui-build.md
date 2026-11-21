@@ -8,7 +8,7 @@ Source priority: where `.pro` files, build scripts and 2026-11 notes disagree wi
 
 ## 1. The `.pro` file of a plain-executable app
 
-The UI is a plain executable, the bar's `Qnx/Elf` entry point. Minimal template: [samples/ui/app.pro](../samples/ui/app.pro); bbmusic's `bbmusic.pro` is the same with `network`.
+The UI is a plain executable, the bar's `Qnx/Elf` entry point. Minimal template: [samples/ui/app.pro](../samples/ui/app.pro); bbmusic's [`bbmusic.pro`](../samples/ui/bbmusic.pro) is the same with `network`.
 
 ```
 TEMPLATE = app
@@ -36,8 +36,8 @@ TRANSLATIONS += translations/phoenix_it.ts translations/phoenix_fr.ts translatio
 |---|---|
 | `TEMPLATE = app` | plain executable, not a `.so` (section 2) |
 | `CONFIG += qt warn_on release` | no `cascades10` |
-| `QT += declarative` | QML (Qt 4.8 QtDeclarative). bbmusic adds `network` (bbmusic's `bbmusic.pro`) |
-| `LIBS += -lbbcascades -lbbdata -lbbsystem -lbb -lbps` | Cascades; `bb::data` (JSON, `JsonDataAccess`); `bb::system` (`InvokeManager`, `LocaleHandler`); `bb` core; BPS (phoenix's `EngineLink.cpp` and the other apps' sources use these classes) |
+| `QT += declarative` | QML (Qt 4.8 QtDeclarative). bbmusic adds `network` (bbmusic's [`bbmusic.pro`](../samples/ui/bbmusic.pro)) |
+| `LIBS += -lbbcascades -lbbdata -lbbsystem -lbb -lbps` | Cascades; `bb::data` (JSON, `JsonDataAccess`); `bb::system` (`InvokeManager`, `LocaleHandler`); `bb` core; BPS (phoenix's [`EngineLink.cpp`](../samples/engine-link/stdio/EngineLink.cpp) and the other apps' sources use these classes) |
 | `QMAKE_CXXFLAGS += -Wno-psabi` | in every one of the four `.pro` files; no source says why. Keep it |
 | `DESTDIR = app` | the executable lands in `<build dir>/app/<TARGET>`; the descriptor points at it (`../build/app-ui/app/phoenix`, [samples/descriptor/bar-descriptor-child.xml](../samples/descriptor/bar-descriptor-child.xml)) |
 | `OBJECTS_DIR`, `MOC_DIR` | keeps `obj/` and `moc/` inside the build dir |
@@ -45,7 +45,7 @@ TRANSLATIONS += translations/phoenix_it.ts translations/phoenix_fr.ts translatio
 
 The compiler is the NDK default (gcc 4.6.3) in phoenix and bbmusic. hyperberry and tengram override it with gcc 4.8.3 and `-std=gnu++11`; the exact qmake lines and why are in [03-toolchains.md](03-toolchains.md) section 3.1. Do not repeat them here.
 
-### Additions the bigger apps make (hyperberry's `hyperberry.pro`, [samples/ui/app-gcc483.pro](../samples/ui/app-gcc483.pro))
+### Additions the bigger apps make (hyperberry's [`hyperberry.pro`](../samples/ui/hyperberry.pro), [samples/ui/app-gcc483.pro](../samples/ui/app-gcc483.pro))
 
 | Addition | What it is for (source) |
 |---|---|
@@ -54,7 +54,7 @@ The compiler is the NDK default (gcc 4.6.3) in phoenix and bbmusic. hyperberry a
 | `-lbbplatform` | `bb::platform::NotificationDefaultApplicationSettings` (hyperberry's `src`) |
 | `-lbbutilityi18n` | `bb::utility::i18n::Formatting` and `RelativeDateFormatter` (dates) |
 | `-lslog2` | `sys/slog2.h`: the UI's log buffer in [samples/ui/main-logging.cpp](../samples/ui/main-logging.cpp) |
-| `-lbbpim` | `bb::pim::contacts` (address book, `ContactBook.cpp`) |
+| `-lbbpim` | `bb::pim::contacts` (address book, [`ContactBook.cpp`](../samples/cookbook/ContactBook.cpp)) |
 | `-lasound -laudio_manager` | call audio in the UI (`CallAudio.cpp`: `asoundlib` and `audio/audio_manager_*.h`) |
 | `-lscreen -lcamapi` | `screen/screen.h` and `camera/camera_api.h`, `camera/camera_encoder.h` are included in the UI sources (video window and camera encoder files) |
 | `-lsocket` (tengram only) | with the static `libcrypto.a`, which needs it ([samples/ui/app-gcc483.pro](../samples/ui/app-gcc483.pro)) |
@@ -73,7 +73,7 @@ hyperberry and tengram compile third-party C files straight into the UI target. 
 - SQLite amalgamation and Tengram's SQLCipher driver (`SQLITE_HAS_CODEC` and the other `DEFINES` copied from TDLib's flags), `QMAKE_CFLAGS_WARN_ON = -w` to silence the C libraries' warnings.
 - `$$files($$PWD/src/*Bubble.cpp)`: a glob, so files added in parallel need no `.pro` edit. `$$PWD`-relative because qmake runs in the build folder; re-run qmake after adding a file (hyperberry's notes, "Building and installing").
 - The OpenMAX IL headers are fetched and put on `INCLUDEPATH`; the core library itself is `dlopen()`ed from the phone (`/base/lib/libOmxCore.so`), so nothing links.
-- C defines do not go through `DEFINES` alone: "`DEFINES` reach C++ only, so C defines go through `-Wc,"-D..."` too" ([skills/bb10-build-deploy/SKILL.md](../skills/bb10-build-deploy/SKILL.md)). Tengram's `.pro` sets `DEFINES` for `sqlite3.c`; check that your C file really sees them.
+- C defines do not go through `DEFINES` alone: "`DEFINES` reach C++ only, so C defines go through `-Wc,"-D..."` too" ([skills/bb10-build-deploy/SKILL.md](../skills/bb10-build-deploy/SKILL.md)). Tengram's [`.pro`](../samples/ui/app-gcc483.pro) sets `DEFINES` for `sqlite3.c`; check that your C file really sees them.
 
 ### lupdate and codecs
 
@@ -86,7 +86,7 @@ lupdate_only {
 }
 ```
 
-(hyperberry's `hyperberry.pro`; the same block is in [samples/ui/app-gcc483.pro](../samples/ui/app-gcc483.pro).) `lupdate_only` makes `lupdate` read the QML and JS; `make` never sees them. `CODECFORTR` and `CODECFORSRC` tell `lupdate` the strings are UTF-8, matching the codecs set in `main.cpp` (section 5).
+(hyperberry's [`hyperberry.pro`](../samples/ui/hyperberry.pro); the same block is in [samples/ui/app-gcc483.pro](../samples/ui/app-gcc483.pro).) `lupdate_only` makes `lupdate` read the QML and JS; `make` never sees them. `CODECFORTR` and `CODECFORSRC` tell `lupdate` the strings are UTF-8, matching the codecs set in `main.cpp` (section 5).
 
 ## 2. Why not `CONFIG += cascades10`
 
@@ -120,13 +120,13 @@ Why they exist: a QML error makes the app quit at start with nothing on screen, 
 
 | # | Check | Catches | Incident |
 |---|---|---|---|
-| 1 | `lupdate app/assets/*.qml -ts /tmp/qml-check.ts 2>&1 \| grep -A2 "error:"` | syntax Qt 4.8 cannot parse. `lupdate` is the NDK's, so it parses as the phone does. The Qt 6 lint lets some syntax through | `Recorder.qml`, hyperberry 0.0.1.77: a binding written as a block with a `var` in it (`clock: { var s = ...; return ... }`) passed the lint and failed the chat page (hyperberry's `build-app.sh`; hyperberry's notes) |
-| 2 | `grep -n "readonly property" app/assets/*.qml` | `lupdate` accepts `readonly property`, the phone refuses the page ("Readonly not yet supported") | the call screen never opened in hyperberry 0.3.1.371-373 (hyperberry's `build-app.sh`) |
+| 1 | `lupdate app/assets/*.qml -ts /tmp/qml-check.ts 2>&1 \| grep -A2 "error:"` | syntax Qt 4.8 cannot parse. `lupdate` is the NDK's, so it parses as the phone does. The Qt 6 lint lets some syntax through | `Recorder.qml`, hyperberry 0.0.1.77: a binding written as a block with a `var` in it (`clock: { var s = ...; return ... }`) passed the lint and failed the chat page (hyperberry's [`build-app.sh`](../samples/ui/scripts/build-app-hyperberry.sh); hyperberry's notes) |
+| 2 | `grep -n "readonly property" app/assets/*.qml` | `lupdate` accepts `readonly property`, the phone refuses the page ("Readonly not yet supported") | the call screen never opened in hyperberry 0.3.1.371-373 (hyperberry's [`build-app.sh`](../samples/ui/scripts/build-app-hyperberry.sh)) |
 | 3 | the sed/uniq check for a function defined twice on a page's root object | the page parses, then the phone refuses it ("Duplicate method name"); `lupdate` does not see it | tengram 0.1.0.29, `ChatPage`'s `picked` ([samples/ui/scripts/build-ui-checks.sh](../samples/ui/scripts/build-ui-checks.sh)) |
 | 4 | `python3 scripts/check-qml-handlers.py` | a handler for a signal that does not exist ("Cannot assign to non-existent property"): the app quits at start | `cascades-qmllint.sh` does not look at handler names (tried 2026-11-14, per the script's docstring) |
 | 5 | `cascades-qmllint.sh app/assets/*.qml` | misspelt properties, signals and enum values; wrong child types; duplicate ids; syntax | the base lint; see below |
 | 6 | the `data/check-qml` flag file, at run time | every QML document compiled on the phone, results in the UI log | pages are created only when first opened, so a fault shows only as a page that never appears |
-| 7 | `node app/tests/*.js` | the app's pure JS (formatting, queue arithmetic) | phoenix's `format_test.js`, bbmusic's `queue_test.js`, hyperberry's `test-phone.js` |
+| 7 | `node app/tests/*.js` | the app's pure JS (formatting, queue arithmetic) | phoenix's [`format_test.js`](../samples/ui/tests/format_test.js), bbmusic's [`queue_test.js`](../samples/ui/tests/queue_test.js), hyperberry's [`test-phone.js`](../samples/ui/tests/test-phone.js) |
 
 ### 4.1 Check 3, as written in [samples/ui/scripts/build-ui-checks.sh](../samples/ui/scripts/build-ui-checks.sh)
 
@@ -309,7 +309,7 @@ Qt 4.8 QML, `bb.cascades 1.4`. Build- and parse-level facts from hyperberry's no
 | No `Component.onCompleted`/`onDestruction` without `import QtQuick 1.0` | the document fails ("Non-existent attached object"); neither lint nor `lupdate` catches it (hyperberry 0.0.1.179). Use `onCreationCompleted` |
 | `bb.system` types (`SystemDialog`, `SystemToast`) | need `import bb.system`; they have no `onCreationCompleted`. Either mistake fails the whole document, and for the root page a black screen |
 | `cover` belongs to `Application`, not `Page` | `Page { cover: ... }` fails to load |
-| `lupdate` cannot parse a JS file with `.pragma library` | `errors.js` dropped it to be translated; it holds no state |
+| `lupdate` cannot parse a JS file with `.pragma library` | [`errors.js`](../samples/ui/errors.js) dropped it to be translated; it holds no state |
 | Ids as numbers | JS numbers lose precision past 2^53: ids are strings across the socket and into QML |
 | QML numbers reach C++ as doubles | `JsonDataAccess` does not write them as plain integers, which Go's integer fields refuse (`EngineLink::send` turns whole numbers into integers) |
 | `Q_INVOKABLE` with a default argument | moc clones it per arity; prefer two names (untested on BB10) |
@@ -324,10 +324,10 @@ Behaviour-level traps (focus, keyboard, menus, lists, `ListItem.view`, a changed
 | Step | Command and file | Source |
 |---|---|---|
 | Update `.ts` | phoenix: `lupdate -silent -no-obsolete app/assets/*.qml app/assets/*.js app/src/*.cpp -ts app/translations/phoenix_{it,fr,de,pl,ru,hi,vi,id}.ts` | [samples/ui/scripts/build-app.sh](../samples/ui/scripts/build-app.sh) |
-| English file | bbmusic keeps `bbmusic_en.ts` for plurals only: `lupdate -silent -pluralonly ... -ts app/translations/bbmusic_en.ts`; the other files are updated with `$(ls app/translations/*.ts \| grep -v _en.ts)` | bbmusic's `build-app.sh` |
+| English file | bbmusic keeps `bbmusic_en.ts` for plurals only: `lupdate -silent -pluralonly ... -ts app/translations/bbmusic_en.ts`; the other files are updated with `$(ls app/translations/*.ts \| grep -v _en.ts)` | bbmusic's [`build-app.sh`](../samples/ui/scripts/build-app-bbmusic.sh) |
 | Compile | `lrelease -silent "$ts" -qm "build/qm/$(basename "${ts%.ts}").qm"` | both |
 | Ship | phoenix and bbmusic: `<asset path="../build/qm">qm</asset>`, loaded from `app/native/qm` | [samples/descriptor/bar-descriptor-child.xml](../samples/descriptor/bar-descriptor-child.xml) |
-| Ship (hyperberry, tengram) | `lrelease "$ts" -qm "app/assets/translations/$(basename "$ts" .ts).qm"`; they ride inside the `assets` asset and load from `applicationDirPath() + "/assets/translations"` | hyperberry's `build-app.sh`, [samples/ui/scripts/build-ui-checks.sh](../samples/ui/scripts/build-ui-checks.sh) |
+| Ship (hyperberry, tengram) | `lrelease "$ts" -qm "app/assets/translations/$(basename "$ts" .ts).qm"`; they ride inside the `assets` asset and load from `applicationDirPath() + "/assets/translations"` | hyperberry's [`build-app.sh`](../samples/ui/scripts/build-app-hyperberry.sh), [samples/ui/scripts/build-ui-checks.sh](../samples/ui/scripts/build-ui-checks.sh) |
 
 - The sources are English, "which has no file" ([samples/ui/scripts/build-app.sh](../samples/ui/scripts/build-app.sh)). bbmusic's English `.ts` exists only to pluralise ("1 track", "5 tracks").
 - **Default set for a new app: en (source), it, fr, de, pl, ru, hi, vi, id** (the user's standing instruction). Existing apps keep their own lists: phoenix it fr de pl ru hi vi id; bbmusic en it fr de pl ru uk hi vi; hyperberry and tengram it fr de es ru uk pl hi id vi ([01-target-and-rules.md](01-target-and-rules.md) section 7).
@@ -338,12 +338,12 @@ Behaviour-level traps (focus, keyboard, menus, lists, `ListItem.view`, a changed
 
 | Asset | How | Source |
 |---|---|---|
-| Action and tab icons (`app/assets/images/ic_*.png`) | `python3 scripts/gen-icons.py`: white on transparent, 81 x 81 px (9 du on a Q10), drawn from shape functions `(x, y) -> bool` over the unit square, "with no library but zlib"; run again after changing a shape. bbmusic's also draws the artwork placeholder, the launcher icon and the splash screens (`app/icon.png`, `app/splash-*.png`) and takes `sheet.png` as an argument to write one sheet of all icons | [samples/ui/scripts/gen-icons.py](../samples/ui/scripts/gen-icons.py), bbmusic's `gen-icons.py` (docstrings) |
-| Launcher icon and splash screens (phoenix) | `python3 scripts/gen-app-icon.py` from an SVG glyph; needs Pillow and ImageMagick's `magick`; run by hand when the look changes | phoenix's `gen-app-icon.py` |
-| Tengram's icon in every size, launch screens, Hub glyphs | `scripts/gen-icon.py` (Pillow) | [samples/ui/scripts/gen-app-icon.py](../samples/ui/scripts/gen-app-icon.py) |
+| Action and tab icons (`app/assets/images/ic_*.png`) | `python3 scripts/gen-icons.py`: white on transparent, 81 x 81 px (9 du on a Q10), drawn from shape functions `(x, y) -> bool` over the unit square, "with no library but zlib"; run again after changing a shape. bbmusic's also draws the artwork placeholder, the launcher icon and the splash screens (`app/icon.png`, `app/splash-*.png`) and takes `sheet.png` as an argument to write one sheet of all icons | [samples/ui/scripts/gen-icons.py](../samples/ui/scripts/gen-icons.py), bbmusic's [`gen-icons.py`](../samples/ui/scripts/gen-icons-bbmusic.py) (docstrings) |
+| Launcher icon and splash screens (phoenix) | `python3 scripts/gen-app-icon.py` from an SVG glyph; needs Pillow and ImageMagick's `magick`; run by hand when the look changes | phoenix's [`gen-app-icon.py`](../samples/ui/scripts/gen-app-icon-phoenix.py) |
+| Tengram's icon in every size, launch screens, Hub glyphs | [`scripts/gen-icon.py`](../samples/ui/scripts/gen-app-icon.py) (Pillow) | [samples/ui/scripts/gen-app-icon.py](../samples/ui/scripts/gen-app-icon.py) |
 | `cacert.pem` (the engine's TLS roots) | fetched by the build script when missing (`curl -fsSL https://curl.se/ca/cacert.pem`), git-ignored (`app/assets/cacert.pem` in [samples/engine-cxx20/gitignore](../samples/engine-cxx20/gitignore)); lands in `app/native/assets/` | [samples/ui/scripts/build-app.sh](../samples/ui/scripts/build-app.sh) |
 | Emoji font and PNGs | `scripts/fetch-emoji.sh`: Noto Color Emoji pinned to a commit and checked by sha256, a derived font into `app/assets/fonts/`, PNGs into `app/assets/emoji/`. "Nothing here is committed" | [samples/third-party/fetch-emoji.sh](../samples/third-party/fetch-emoji.sh) |
-| qrcodegen, OpenMAX IL headers, libwebp, the SQLCipher driver | `scripts/fetch-*.sh`, called at the top of the build script | [samples/ui/scripts/build-ui-checks.sh](../samples/ui/scripts/build-ui-checks.sh), hyperberry's `build-app.sh` |
+| qrcodegen, OpenMAX IL headers, libwebp, the SQLCipher driver | `scripts/fetch-*.sh`, called at the top of the build script | [samples/ui/scripts/build-ui-checks.sh](../samples/ui/scripts/build-ui-checks.sh), hyperberry's [`build-app.sh`](../samples/ui/scripts/build-app-hyperberry.sh) |
 | `libtgs.so` | `scripts/build-tgs.sh` (clang, in the engine image), then linked by the UI | [samples/ui/scripts/build-ui-checks.sh](../samples/ui/scripts/build-ui-checks.sh) |
 
 Pin each download by commit and sha256, and keep fetched files out of git. Icon sizes and splash resolutions in the descriptor: [08-packaging.md](08-packaging.md).

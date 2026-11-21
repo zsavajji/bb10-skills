@@ -18,3 +18,14 @@ A C++20 engine for BB10: CMake, entry points, server, scripts. Copied from the a
 | gitignore | phoenix, `.gitignore` (4e06969) | verbatim | What to ignore |
 
 The scripts expect their own app's layout (`$ROOT/engine`, `$ROOT/scripts`).
+| bb10.cpp | Tengram, `engine/bb10.cpp` (5a65cdf) | verbatim | Navigator and network status on a BPS thread of their own |
+| hub_qnx.cpp | Tengram, `engine/hub_qnx.cpp` (5a65cdf) | verbatim | BlackBerry Hub backend loaded at run time (Unified Data Source) |
+| engine.h, engine.cpp | BBMusic, `engine/src/engine/engine.h, engine.cpp` (1d80813) | verbatim | Engine wiring: threads, commands to player, events to clients |
+| CMakeLists-bbmusic.txt | BBMusic, `engine/CMakeLists.txt` (1d80813) | verbatim | Engine CMake with wolfSSL, curl and Opus |
+| checks/dbq.cpp | Tengram, `tests/dbq.cpp` (5a65cdf) | verbatim | Run one SQL statement on the encrypted chats.db from a shell |
+| checks/https_check.cpp | Tengram, `tests/https_check.cpp` (5a65cdf) | verbatim | One TLS request to see the answer on the phone |
+| checks/voice_check.cpp | Tengram, `tests/voice_check.cpp` (5a65cdf) | verbatim | Opus/OGG voice codec round trip |
+| probe/build.sh | Tengram, `probe/build.sh` (5a65cdf) | verbatim | Build the TDLib probe in Docker |
+| probe/measure.sh | Tengram, `probe/measure.sh` (5a65cdf) | verbatim | Sample memory and CPU of a process on the phone |
+| probe/README.md | Tengram, `probe/README.md` (5a65cdf) | verbatim | What the probe measures and how to run it |
+| probe/tdprobe.cpp | Tengram, `probe/tdprobe.cpp` (5a65cdf) | verbatim | TDLib start time, memory and CPU measurement |

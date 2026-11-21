@@ -88,7 +88,7 @@ Use: `E=$(scripts/push.sh build/tengramd)` then run `$E` with the arguments on t
 
 | Script | Difference |
 |---|---|
-| bbmusic's `push-phone.sh` | `DIR=/root/bbmusic` fixed; extra files are copied beside the program; the program is run bare, or with `PROBE_ARG`, and **must return 0 at once**; there is no exit-code-126 test; older copies of the same program are removed on success; hash with `shasum` |
+| bbmusic's [`push-phone.sh`](../samples/phone/push-phone.sh) | `DIR=/root/bbmusic` fixed; extra files are copied beside the program; the program is run bare, or with `PROBE_ARG`, and **must return 0 at once**; there is no exit-code-126 test; older copies of the same program are removed on success; hash with `shasum` |
 | [samples/phone/push-engine.sh](../samples/phone/push-engine.sh) | `DIR=/root/hyperberry`; default file `build/hyperberryd`, named `hbd-<sha8>`; probe is `-h` exiting 0; a copy of this build that already runs is reused ("copying over it (it may be running) would make cp stop and ask"); older builds are removed; hashes with `sha256sum` |
 | [samples/phone/push.sh](../samples/phone/push.sh) | the one above: probe argument settable, anything but 126 counts as runnable (so a program may exit non-zero on `-h`), `denied/` kept |
 
@@ -214,7 +214,7 @@ A pattern worth copying: a script that drives the app's engine on the phone over
 - [samples/phone/sim-driver.py](../samples/phone/sim-driver.py): reads `data/engine.json` (`port`, `token`) through ssh, opens an `ssh -N -L` tunnel to that port, and sends engine commands. Subcommands: `on` (a file `data/sim` simulates the account and restarts the engine), `link`, `msg N [text]`, `typing N`, `voice N [seconds]`, `photo N`, `react N [emoji]`, `story [text]`, `storyview N`, `removed`, `off`, `state`. It changes only the simulated account's made-up chats.
 - Allowed without asking for hyperberry's sim only ("yes, 100% run on the phone", the user, 2026-10-31): say what was run and why. Not on a phone that holds the real account (`data/session.db`, no `data/sim`): check the model and the account first.
 - Run a notification check with the app minimised (`ui.state` fullscreen false in the engine's log) before `sim.py msg`: the chat on screen never notifies.
-- Tengram's equivalents: [samples/phone/engine_client.py](../samples/phone/engine_client.py) `<cmd> '<json>' --listen 10` through an ssh tunnel, `tests/engine_smoke.py`; do not run beside the app on the same session (Tengram notes). bbmusic: the engine runs on the phone from a root shell with `--null` and is driven from the Mac through `ssh -L` (BBMusic notes).
+- Tengram's equivalents: [samples/phone/engine_client.py](../samples/phone/engine_client.py) `<cmd> '<json>' --listen 10` through an ssh tunnel, [`tests/engine_smoke.py`](../samples/phone/engine_smoke.py); do not run beside the app on the same session (Tengram notes). bbmusic: the engine runs on the phone from a root shell with `--null` and is driven from the Mac through `ssh -L` (BBMusic notes).
 
 ## Where sources disagree
 
