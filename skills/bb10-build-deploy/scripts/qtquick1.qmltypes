@@ -1,0 +1,37 @@
+import QtQuick.tooling 1.2
+
+// The non-visual QtQuick 1.0 types Cascades apps use (Qt 4.8's QtObject,
+// QDeclarativeTimer and QDeclarativeConnections), so `import QtQuick 1.0` lints.
+// Visual QtQuick items are left out on purpose: they do not render in a
+// Cascades scene.
+Module {
+    Component {
+        name: "QtQuick1QtObject"
+        prototype: "QObject"
+        exports: ["QtQuick/QtObject 1.0"]
+        exportMetaObjectRevisions: [256]
+    }
+    Component {
+        name: "QDeclarativeTimer"
+        prototype: "QObject"
+        exports: ["QtQuick/Timer 1.0"]
+        exportMetaObjectRevisions: [256]
+        Property { name: "interval"; type: "int" }
+        Property { name: "running"; type: "bool" }
+        Property { name: "repeat"; type: "bool" }
+        Property { name: "triggeredOnStart"; type: "bool" }
+        Property { name: "parent"; type: "QObject"; isReadonly: true; isPointer: true }
+        Signal { name: "triggered" }
+        Method { name: "start" }
+        Method { name: "stop" }
+        Method { name: "restart" }
+    }
+    Component {
+        name: "QQmlConnections"
+        prototype: "QObject"
+        exports: ["QtQuick/Connections 1.0"]
+        exportMetaObjectRevisions: [256]
+        Property { name: "target"; type: "QObject"; isPointer: true }
+        Property { name: "ignoreUnknownSignals"; type: "bool" }
+    }
+}

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<qnx xmlns="http://www.qnx.com/schemas/application/1.0">
+    <!-- A new id is a different app: it installs beside the old one, and
+         uninstalling the old one deletes its data. -->
+    <id>com.example.hello</id>
+    <name>Hello</name>
+    <versionNumber>1.0.0</versionNumber>
+    <!-- Every build handed over needs a new one, or the installer keeps the old app.
+         build.sh passes -buildIdFile, which overwrites this at packaging.
+         Package-Version in the .bar's MANIFEST.MF is versionNumber.buildId. -->
+    <buildId>1</buildId>
+    <description>A Cascades starter app.</description>
+    <author>Example</author>
+
+    <!-- The home screen takes the closest size: 90 (720x720), 96 (720x1280),
+         110 (768x1280), 144 (1440x1440). Add the PNGs and uncomment.
+    <icon>
+        <image>assets/icon/icon90.png</image>
+        <image>assets/icon/icon96.png</image>
+        <image>assets/icon/icon110.png</image>
+        <image>assets/icon/icon144.png</image>
+    </icon>
+    -->
+
+    <initialWindow>
+        <autoOrients>false</autoOrients>
+        <aspectRatio>portrait</aspectRatio>
+        <systemChrome>none</systemChrome>
+    </initialWindow>
+
+    <configuration name="Device-Release">
+        <platformArchitecture>armle-v7</platformArchitecture>
+        <asset path="build/app/hello" entry="true" type="Qnx/Elf">hello</asset>
+    </configuration>
+
+    <asset path="assets">assets</asset>
+
+    <permission system="true">run_native</permission>
+    <!-- Add what the app uses: access_internet, access_shared (the user may
+         refuse it: fall back to the data folder), post_notification,
+         run_when_backgrounded, use_camera, read_geolocation, ... -->
+    <env var="LD_LIBRARY_PATH" value="app/native/lib:/usr/lib/qt4/lib"/>
+    <!-- bright or dark; a primary colour too:
+         value="dark?primaryColor=0x00A8DF&amp;primaryBase=0x0077A3" -->
+    <env var="CASCADES_THEME" value="dark"/>
+</qnx>
