@@ -28,7 +28,7 @@
 
 ## Canonical reference: the `bbcord/` project in this repo (READ IT FIRST)
 
-`../bbcord/` is a **real, complete, structured BB10 Cascades app** (an unofficial Discord
+[bbcord](https://github.com/michioxd/bbcord) is a **real, complete, structured BB10 Cascades app** (an unofficial Discord
 client) sitting in this repo. It is the best possible reference — a working example of
 exactly this kind of app, with real conventions. Prefer copying its patterns over any
 generic web guide. Its architecture:
@@ -57,7 +57,7 @@ call `controllerName.method(...)` and bind to `controllerName.someProperty`.
 
 ## Second reference: `SmartList10/` (a contrasting architecture)
 
-`../SmartList10/` is a second complete Cascades app (a checklist/task manager). It shows
+[SmartList10](https://github.com/BBerrylife/SmartList10) is a second complete Cascades app (a checklist/task manager). It shows
 the **opposite** split from bbcord and is worth studying for that contrast:
 
 - **Logic lives in QML/JS**, not C++ controllers: `AppLogic.qml`, `AppStorage.qml`,
@@ -309,7 +309,7 @@ MyApp/
 
 ## Reference resources
 
-- **`../bbcord/` and `../SmartList10/` (in THIS repo)** — two real, complete Cascades
+- **[bbcord](https://github.com/michioxd/bbcord) and [SmartList10](https://github.com/BBerrylife/SmartList10)** — two real, complete Cascades
   apps. These are your primary references; read them before any web guide. See the two
   "reference" sections above for their architectures.
 - **blackberry/Cascades-Samples** (github.com/blackberry/Cascades-Samples) — 100+ real,

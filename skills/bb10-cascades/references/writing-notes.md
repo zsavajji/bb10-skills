@@ -2,8 +2,8 @@
 
 Read when: you write `main.cpp`, swap the scene, animate a page, expose C++ to QML, or draw list rows in C++. Each entry has its source
 and an evidence tag. Tags as in **bb10-pitfalls**: [Q10], [Classic], [SDK], [app] (one of our four apps, or a third-party one),
-[untested]. "Seen on the phone" is written where the source says so. The apps: HyperBerry (WhatsApp, `../hyperberry`), Tengram
-(Telegram, `../tengram`), BBMusic (`../bbmusic`), Phoenix (Reddit, `../phoenix`). Build-side facts (`.pro`, codecs, build
+[untested]. "Seen on the phone" is written where the source says so. The apps: HyperBerry (WhatsApp, [hyperberry](https://github.com/zsavajji/hyperberry)), Tengram
+(Telegram, `../tengram`), BBMusic ([bbmusic](https://github.com/zsavajji/bbytmusic)), Phoenix (Reddit, `../phoenix`). Build-side facts (`.pro`, codecs, build
 scripts) are in `../../../docs/07-ui-build.md`; this file is about the code.
 
 ## 1. `main.cpp`

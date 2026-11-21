@@ -65,7 +65,7 @@ ForeignWindowControl {
 | Fragmented MP4 | moof boxes; `mvhd`, `tkhd` and `mdhd` say 0 and the length is only in `mvex`'s `mehd`. mm-renderer reports "Track duration 0" and refuses every seek (`UnsupportedOperation`). A 3:44 video showed 0:00 / 0:00 and a touch on the timeline restarted it | `tengram` commit `74bb400`, `tengram/app/src/Mp4Length.h` |
 | What Tengram does about it | reads the length from the file (`Mp4Length`: `mvhd`, else `mehd`); the player's position still moves, so the time reads 0:02 / 3:44. For a fragmented file the timeline is hidden and an "Open in player" button hands the file to the system (`bb.action.OPEN`). A seek the player refuses is not taken for a file that cannot play. A file whose length the player does not know takes no seek | same |
 | Evidence | the length and the refused seek were seen on the Classic, 1.0.0.90 (`ui.log`); the hidden timeline and the button were "not built" when that commit was written and "untried on a phone" in `tengram/docs/HANDOFF.md` | same |
-| Remote URL | "mmrenderer only opens complete local files"; bbtube's audio-only mode plays a remote URL but with seek disabled; its video path stitches MP4s on disk | `bbmusic/PLAN.md` section 2 |
+| Remote URL | "mmrenderer only opens complete local files"; [bbtube](https://github.com/BBerryLife/bbtube)'s audio-only mode plays a remote URL but with seek disabled; its video path stitches MP4s on disk | `bbmusic/PLAN.md` section 2 |
 | Failure | on a player error both viewers call `opener.openFile(path)`, the system's app gets the file (`fail()`) | `VideoViewer.qml` |
 | Loop and mute | a GIF: `repeatMode: RepeatMode.Track`, `volume: 0` in Phoenix | `phoenix/app/assets/VideoPage.qml` |
 | Audio focus | not stated in any source read | |
@@ -112,7 +112,7 @@ What was learned: the decoder exists. `/base/lib/dll/mmedia/e7_video_decoder.so`
 
 ### Round 2: the URI route, the BBTube way (`h264uri.c`)
 
-BBTube (`doctorrokter.BBTube`) plays H.264 through OpenMAX AL: its `libbbplayer.so` remuxes with FFmpeg and plays a URI into the QNX video buffer-queue sink, with no buffer-queue source (its strings show `fmp4gen` and `bbplayer_open_segments`). That library is not in this workspace's `bbtube/` folder; everything here comes from `phase7.md`.
+[BBTube](https://github.com/BBerryLife/bbtube) (`doctorrokter.BBTube`) plays H.264 through OpenMAX AL: its `libbbplayer.so` remuxes with FFmpeg and plays a URI into the QNX video buffer-queue sink, with no buffer-queue source (its strings show `fmp4gen` and `bbplayer_open_segments`). That library is not in this workspace's `bbtube/` folder; everything here comes from `phase7.md`.
 
 ```c
 XADataLocator_URI lu = {XA_DATALOCATOR_URI, (XAchar *)uri};

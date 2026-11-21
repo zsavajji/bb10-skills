@@ -2,7 +2,7 @@
 
 Paste this file into an agent's prompt before it works on a BB10 app. It is the short form of this repo
 (`base-bb10`); each section names the doc with the detail and the sources. Everything here comes from four
-working apps beside this repo: `hyperberry` (WhatsApp), `tengram` (Telegram), `bbmusic` (YouTube Music) and
+working apps beside this repo: [hyperberry](https://github.com/zsavajji/hyperberry) (WhatsApp), `tengram` (Telegram), [bbmusic](https://github.com/zsavajji/bbytmusic) (YouTube Music) and
 `phoenix` (Reddit). Paths like `../phoenix` are relative to this repo.
 
 ## 1. What never changes
@@ -70,7 +70,7 @@ Detail: `docs/02-architecture.md`.
 | Code | Compiler | Image |
 |---|---|---|
 | Cascades UI, anything linking Qt or `bb::*` | NDK `qcc`: GCC 4.6.3 (default, write C++98), or GCC 4.8.3 with `-std=gnu++11` | `yamsergey/bb10-ndk:0.6` (Native SDK 10.3.1; linux/386, emulated on Apple Silicon) |
-| Engine, ported libraries | `bb10-clang++` (clang 19, libc++ 19.1.7, C++20) | an image `FROM bb10-cxx20:<pinned tag>` (`../bb10-cxx20`) |
+| Engine, ported libraries | `bb10-clang++` (clang 19, libc++ 19.1.7, C++20) | an image `FROM bb10-cxx20:<pinned tag>` ([bb10-cxx20](https://github.com/zsavajji/bb10-cxx20)) |
 | A C++14+ library the UI must call | clang, into its own `.so` that exports a C API only | the engine's image |
 | Go engine | go-qnx 1.27.2, cgo through `bb10-clang` | bb10-cxx20 plus go-qnx |
 
@@ -178,7 +178,7 @@ Detail: `docs/08-packaging.md`.
 - **The cap:** a headless process runs under `RLIMIT_DATA` from its memory class: none 3 MiB (a Go runtime
   dies before `main`), `_sys_headless_medium` 6, `_sys_headless_large` 10, `_sys_headless_xlarge` **30 MiB**.
   Soft equals hard, so the app cannot raise it.
-- **The patch** (`../rlimit-patch`): authman keeps the class's limit as the text `rlm RLIMIT_DATA 31457280`.
+- **The patch** ([rlimit-patch](https://github.com/zsavajji/authman-rlimit)): authman keeps the class's limit as the text `rlm RLIMIT_DATA 31457280`.
   A root addon rewrites it to `134217728` (**128 MiB**) in the running authman's memory through
   `/proc/<pid>/as`, at every boot. Install: `/var/rootdata/installer headless-mem.zip`; log lines `[HMEM]` in
   `/var/log/installer.log`. HyperBerry and Tengram bundle the zip and install it from Settings.

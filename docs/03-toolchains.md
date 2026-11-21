@@ -156,7 +156,7 @@ C libraries (OpenSSL, zlib, mongoose) can also be built with the NDK's GCC 4.6 a
 | "Nothing to be done" from `make` after a QML-only change | fine: QML ships as assets | `hyperberry/.claude/skills/bb10-build-deploy/SKILL.md` |
 | After adding a library to `LIBS`, qmake may not regenerate | `grep -c lbps build/Makefile` | same |
 | The packager writes `assets/.assets.index` into the source tree | delete it after packaging (`rm -f assets/.assets.index`) and git-ignore it | `phoenix/scripts/build-app.sh`; `bbmusic/.gitignore` |
-| `../bb10-cxx20` is the user's repo | do not change it from an app | `tengram/docs/HANDOFF.md` §4 |
+| [bb10-cxx20](https://github.com/zsavajji/bb10-cxx20) is the user's repo | do not change it from an app | `tengram/docs/HANDOFF.md` §4 |
 
 Where to run `qmake`/`make` and package: [07-ui-build.md](07-ui-build.md), [08-packaging.md](08-packaging.md). Rebuild the runtimes themselves with `scripts/fetch-llvm.py` then `scripts/build-runtimes.sh SRC PREFIX` inside XIAZY's image (`hyperberry/.claude/skills/bb10-cxx20/SKILL.md`); for a new app you almost never need to.
 

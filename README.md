@@ -5,12 +5,13 @@ Everything here was learned building four apps that sit beside this repo, and is
 
 | App | What | UI | Engine | Engine runs as |
 |---|---|---|---|---|
-| `../hyperberry` | WhatsApp client | Cascades, gcc 4.8.3 | Go (go-qnx) | headless service |
+| [hyperberry](https://github.com/zsavajji/hyperberry) | WhatsApp client | Cascades, gcc 4.8.3 | Go (go-qnx) | headless service |
 | `../tengram` | Telegram client | Cascades, gcc 4.8.3 (fork of HyperBerry's UI) | C++20 over TDLib | headless service |
-| `../bbmusic` | YouTube Music client | Cascades, gcc 4.6.3 | C++20, libcurl + wolfSSL | headless service |
+| [bbmusic](https://github.com/zsavajji/bbytmusic) | YouTube Music client | Cascades, gcc 4.6.3 | C++20, libcurl + wolfSSL | headless service |
 | `../phoenix` | Reddit client | Cascades, gcc 4.6.3 | C++20, libcurl + OpenSSL | plain child of the UI |
 
-The toolchain is `../bb10-cxx20`; the headless memory patch is `../rlimit-patch`.
+The toolchain is [bb10-cxx20](https://github.com/zsavajji/bb10-cxx20); the headless memory patch is [rlimit-patch](https://github.com/zsavajji/authman-rlimit).
+Source paths such as `hyperberry/PLAN.md` are relative to the app's own repo.
 
 **Giving an agent context in one file:** paste [AGENT_CONTEXT.md](AGENT_CONTEXT.md) into its prompt. It is the
 short form of everything below, with a pointer to the doc for each topic.

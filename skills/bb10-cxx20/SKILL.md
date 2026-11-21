@@ -10,7 +10,7 @@ Image: **pin a release tag, not `latest`**: `bb10-cxx20:19.1.7-5`, built from th
 unpacks the release tarball, checked by sha256), or the published `ghcr.io/zsavajji/bb10-cxx20:v19.1.7-5` (also `:latest`; x86-64 and
 arm64, so it runs natively on Apple Silicon). `latest` is whatever was last built locally, so a rebuild on another Mac can silently differ.
 Where each app got its base tag, and the NDK image: [03](../../docs/03-toolchains.md) section 1. The engine build in full:
-[04](../../docs/04-engine-cxx20.md). Everything in `../bb10-cxx20` is the user's repo: do not change it from an app.
+[04](../../docs/04-engine-cxx20.md). Everything in [bb10-cxx20](https://github.com/zsavajji/bb10-cxx20) is the user's repo: do not change it from an app.
 
 | Release | What changed for you (`out/release*/notes.md`) |
 |---|---|

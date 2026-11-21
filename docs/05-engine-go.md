@@ -211,3 +211,4 @@ One Go file per job, no interface with a single implementation: `main.go`/`engin
 - `hyperberry/engine/roots.go`, `hyperberry/engine/navigator_qnx.go`, `hyperberry/engine/*_qnx.go`
 - `hyperberry/docs/plan/pitfalls.md`, `phase0.md`, `design.md` (§3, §6, §8), `phase6.md`, `phase7.md`, `translate.md`
 - `hyperberry/PLAN.md` (§2, §12), `bbmusic/PLAN.md` (§3), `tengram/NOTES.md`, `rlimit-patch/README.md`
+- [whatsapp-light](https://github.com/vbbot/whatsapp-light): the `meowcaller/*.patch` fixes applied first in `hypermeow-work.sh`

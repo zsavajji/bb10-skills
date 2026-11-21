@@ -276,7 +276,7 @@ The mechanism (nothing here opens a key file): an API key and hash (Telegram's) 
 
 ## 9. Bundling a sibling repo's artifact
 
-hyperberry and tengram bundle `../rlimit-patch`'s `headless-mem.zip`. The Docker mount covers only the project (`-v "$ROOT:/src"`), so the zip must be a real copy inside the project's `build/` before the packager runs. From `tengram/scripts/build-app.sh`:
+hyperberry and tengram bundle [rlimit-patch](https://github.com/zsavajji/authman-rlimit)'s `headless-mem.zip`. The Docker mount covers only the project (`-v "$ROOT:/src"`), so the zip must be a real copy inside the project's `build/` before the packager runs. From `tengram/scripts/build-app.sh`:
 
 ```sh
 if [ ! -x "$ROOT/../rlimit-patch/build.sh" ]; then

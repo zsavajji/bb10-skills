@@ -184,7 +184,7 @@ IMAGE=${BB10_NDK_IMAGE:-yamsergey/bb10-ndk:0.6}
 LINT=${LINT:-$ROOT/../base-bb10/skills/bb10-build-deploy/scripts/cascades-qmllint.sh}
 mkdir -p "$ROOT/build"
 
-# 3. A function defined twice on a page's root object (tengram/scripts/build-ui.sh).
+# 3. A function defined twice on a page's root object (scripts/build-ui.sh).
 dups=$(for f in "$ROOT"/app/assets/*.qml; do
 	sed -n 's/^    function \([A-Za-z0-9_]*\)(.*/\1/p' "$f" | sort | uniq -d | sed "s|^|$(basename "$f"): |"
 done)
@@ -193,13 +193,13 @@ if [ -n "$dups" ]; then
 	echo "$dups" >&2
 	exit 1
 fi
-# 4. A signal handler that does not exist (needs the cache the lint makes; phoenix/scripts/build-app.sh).
+# 4. A signal handler that does not exist (needs the cache the lint makes; scripts/build-app.sh).
 if [ -d "$HOME/.cache/bb10-qmllint/imports" ]; then
 	python3 "$ROOT/scripts/check-qml-handlers.py"
 else
 	echo "build-app.sh: no qmllint cache, signal handlers not checked" >&2
 fi
-# 7. The app's pure JS (phoenix/scripts/build-app.sh runs one file; this loops, added).
+# 7. The app's pure JS (scripts/build-app.sh runs one file; this loops, added).
 if command -v node >/dev/null 2>&1; then for t in "$ROOT"/app/tests/*.js; do node "$t"; done; fi
 # 5. Exit 255 stops the build; read the warnings.
 if [ -f "$LINT" ]; then
