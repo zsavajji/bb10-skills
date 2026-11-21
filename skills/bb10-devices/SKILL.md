@@ -151,13 +151,13 @@ ppd folders for bitmaps (e.g. 81×81 px action icons at 9 ppd; scale ×12/9 for 
 ## Testing reality
 
 The user has **a Q10 and a Classic** (the Classic is Q20, SQC100-1, OS 10.3.3.3216; both 720×720 keyboard phones). The old
-"one Q10" is superseded (2026-11 notes). **`ssh bb10rootx` is the cable, not a phone**: it reaches whichever one is plugged in.
+There are two phones, not one Q10. **`ssh bb10rootx` is the cable, not a phone**: it reaches whichever one is plugged in.
 Before naming it, run `ssh bb10rootx 'grep modelname /pps/services/deviceproperties'` (prints `modelname::Classic` on the Classic; on
 2026-11-20 a Classic was reported as "the Q10" until the user said so). Never hardcode the device in code: read it (BPS `deviceinfo`,
 `DisplayInfo`).
 
 - **Can be tested**: the Classic's trackpad (tested: it does not work on `TapArea` controls), belt keys (Call, Menu, Back, End) and 8 px/du; the Q10's keyboard and 9 px/du; both 720×720.
-- **Cannot be tested here**: Passport (touch keyboard, top row, 1440×1440, 12 px/du), Z10, Z30, Z3, Leap (on-screen keyboard, tall
+- **Cannot be tested by the author (no phone)**: Passport (touch keyboard, top row, 1440×1440, 12 px/du), Z10, Z30, Z3, Leap (on-screen keyboard, tall
   screens). Those paths can only be checked through friends' logs and screenshots. Add a one-time log line ("touch keyboard scrolls
   the page", "on-screen keyboard: N px") and mark tunable constants as guesses in comments. Say "builds; not tried on a <model>"
   rather than "works"; name which of the two phones a claim was seen on.

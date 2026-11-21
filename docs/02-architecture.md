@@ -41,7 +41,7 @@ Note: phoenix does not use loopback TCP. Its protocol is the same NDJSON, carrie
 
 From `hyperberry/docs/plan/design.md` §3, `bbmusic/PLAN.md` §3, `tengram/NOTES.md`, `bb10-cxx20/README.md`:
 
-- **ABI.** Qt 4.8 and Cascades on the phone are built with GCC 4.6 against the SDK's Dinkumware C++ library. libc++ (bb10-cxx20) and Dinkumware have different `std::` ABIs and exception machinery. Never pass `std::string`, containers or exceptions between a qcc module and a libc++ module (`bb10-cxx20/README.md` "Not for Cascades/Qt code"; `hyperberry/.claude/skills/bb10-cxx20/SKILL.md`). A process boundary costs one socket. A libc++ library inside a Cascades process built with GCC 4.6 was a risk of an early BBMusic draft that the process split removed (`bbmusic/PLAN.md` §3).
+- **ABI.** Qt 4.8 and Cascades on the phone are built with GCC 4.6 against the SDK's Dinkumware C++ library. libc++ (bb10-cxx20) and Dinkumware have different `std::` ABIs and exception machinery. Never pass `std::string`, containers or exceptions between a qcc module and a libc++ module (`bb10-cxx20/README.md` "Not for Cascades/Qt code"; `base-bb10/skills/bb10-cxx20/SKILL.md`). A process boundary costs one socket. A libc++ library inside a Cascades process built with GCC 4.6 was a risk of an early BBMusic draft that the process split removed (`bbmusic/PLAN.md` §3).
 - **Go cannot sensibly live inside the Cascades process**: Go installs its own signal handlers and manages its own threads (`hyperberry/docs/plan/design.md` §3).
 - **The connection (or the speaker) must outlive the UI.** Messages and notifications must keep arriving after the user closes the app; music must go on after the app is swiped away. BB10's way is a headless entry point in the same `.bar` (`design.md` §3; `bbmusic/PLAN.md` §3 and §14 answer 5). Details: [09-headless-service.md](09-headless-service.md).
 - **Crash isolation.** A UI crash does not drop the WhatsApp connection, and the reverse (`design.md` §3).
@@ -184,7 +184,7 @@ engine/tests/fixtures/mp4/*.mp4
 engine/third_party/libwebp/
 ```
 
-Rule behind it: **fetched sources and secrets are never committed** (`phoenix/scripts/fetch-third-party.sh`, `hyperberry/PLAN.md` §12). A key file is read by `build-app.sh` and the keys are compiled in with `-D`, never written to a tracked file ([04-engine-cxx20.md](04-engine-cxx20.md)). HyperBerry's older layout also had `lib/` for fetched UI libraries (`lib/qrcodegen`, `lib/libwebp`, `lib/omxil`), `debug/` for screenshots (never committed) and `.claude/skills/` (`hyperberry/docs/plan/design.md` §8 "Repo layout").
+Rule behind it: **fetched sources and secrets are never committed** (`phoenix/scripts/fetch-third-party.sh`, `hyperberry/PLAN.md` §12). A key file is read by `build-app.sh` and the keys are compiled in with `-D`, never written to a tracked file ([04-engine-cxx20.md](04-engine-cxx20.md)). HyperBerry also has `lib/` for fetched UI libraries (`lib/qrcodegen`, `lib/libwebp`, `lib/omxil`) and `debug/` for screenshots (never committed) (`hyperberry/docs/plan/design.md` §8 "Repo layout").
 
 Module layout seen in the engines: phoenix has `util net text mp4 reddit media setup core`; bbmusic has `util net proto stream media audio innertube player store platform server engine` (the `platform` module is BB10-only code: navigator, now-playing, Bluetooth routing; its sources are empty on the host via `#ifdef __QNX__`). The dependency table lives in each `engine/CMakeLists.txt` ([04-engine-cxx20.md](04-engine-cxx20.md)).
 
@@ -230,4 +230,4 @@ Also built for the gates: a **gate app** (`bbmusic/gateapp/`, `scripts/build-gat
 - `bbmusic/app/src/EngineLink.cpp`, `bbmusic/app/bar-descriptor.xml`, `bbmusic/engine/src/main.cpp`, `bbmusic/engine/src/server/server.cpp`, `bbmusic/engine/CMakeLists.txt`
 - `phoenix/app/src/EngineLink.cpp`, `phoenix/app/bar-descriptor.xml`, `phoenix/docs/protocol.md`, `phoenix/engine/src/main.cpp`, `phoenix/engine/CMakeLists.txt`, `phoenix/.gitignore`
 - `tengram/NOTES.md`, `tengram/docs/HANDOFF.md`, `tengram/engine/main.cpp`, `tengram/engine/server.cpp`, `tengram/app/tengram.pro`
-- `bb10-cxx20/README.md`, `hyperberry/.claude/skills/bb10-cxx20/SKILL.md`
+- `bb10-cxx20/README.md`, `base-bb10/skills/bb10-cxx20/SKILL.md`

@@ -1,7 +1,7 @@
 #!/bin/sh
 # Builds build/hello.bar (unsigned) in the BB10 Native SDK 10.3.1 image, with the next build id
 # from build/buildid.txt (-buildIdFile), so the installer never mistakes a new build for the old one.
-# Installing: hand the .bar to the user (Sachesi or DDPB with Development Mode on), or, only when
+# Installing: hand the .bar to the user (Sachesi or DBBT with Development Mode on), or, only when
 # the user says so, over root SSH through the installer's PPS job (bb10-build-deploy, "Install").
 set -eu
 repo=$(cd "$(dirname "$0")" && pwd)

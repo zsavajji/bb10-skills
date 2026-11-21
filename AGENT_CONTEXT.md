@@ -2,8 +2,8 @@
 
 Paste this file into an agent's prompt before it works on a BB10 app. It is the short form of this repo
 (`base-bb10`); each section names the doc with the detail and the sources. Everything here comes from four
-working apps beside this repo: [hyperberry](https://github.com/zsavajji/hyperberry) (WhatsApp), `tengram` (Telegram), [bbmusic](https://github.com/zsavajji/bbytmusic) (YouTube Music) and
-`phoenix` (Reddit). Paths like `../phoenix` are relative to this repo.
+working apps beside this repo: [hyperberry](https://github.com/zsavajji/hyperberry) (WhatsApp), [tengram](https://github.com/zsavajji/tengram) (Telegram), [bbmusic](https://github.com/zsavajji/bbytmusic) (YouTube Music) and
+[phoenix](https://github.com/zsavajji/phoenix) (Reddit). Paths like `../phoenix` assume the repos are checked out side by side, as the author has them; adjust to your layout.
 
 ## 1. What never changes
 
@@ -65,12 +65,12 @@ Detail: `docs/01-target-and-rules.md`.
 
 Detail: `docs/02-architecture.md`.
 
-## 4. Toolchains: everything builds from the Mac, in Docker
+## 4. Toolchains: everything builds in Docker, on a Mac, Linux or WSL host
 
 | Code | Compiler | Image |
 |---|---|---|
-| Cascades UI, anything linking Qt or `bb::*` | NDK `qcc`: GCC 4.6.3 (default, write C++98), or GCC 4.8.3 with `-std=gnu++11` | `yamsergey/bb10-ndk:0.6` (Native SDK 10.3.1; linux/386, emulated on Apple Silicon) |
-| Engine, ported libraries | `bb10-clang++` (clang 19, libc++ 19.1.7, C++20) | an image `FROM bb10-cxx20:<pinned tag>` ([bb10-cxx20](https://github.com/zsavajji/bb10-cxx20)) |
+| Cascades UI, anything linking Qt or `bb::*` | NDK `qcc`: GCC 4.6.3 (default, write C++98), or GCC 4.8.3 with `-std=gnu++11` | [`yamsergey/bb10-ndk:0.6`](https://hub.docker.com/r/yamsergey/bb10-ndk) (Native SDK 10.3.1; linux/386, emulated on Apple Silicon and other non-x86 hosts) |
+| Engine, ported libraries | `bb10-clang++` (clang 19, libc++ 19.1.7, C++20) | an image `FROM bb10-cxx20:<pinned tag>` ([`bb10-cxx20`](https://github.com/zsavajji/bb10-cxx20), published as [`ghcr.io/zsavajji/bb10-cxx20`](https://github.com/zsavajji/bb10-cxx20/pkgs/container/bb10-cxx20)) |
 | A C++14+ library the UI must call | clang, into its own `.so` that exports a C API only | the engine's image |
 | Go engine | go-qnx 1.27.2, cgo through `bb10-clang` | bb10-cxx20 plus go-qnx |
 
@@ -271,7 +271,7 @@ Detail: `docs/11-testing-and-debugging.md`.
 - Square keyboard phones are portrait only, with no on-screen keyboard; tall phones (Z10, Z30) have one.
 - The Q10 and the Z30 are OLED: default to the dark theme, pure black. On LCD phones (Classic, Passport)
   HyperBerry and Tengram default to a grey page, `#181818`.
-- Only a Q10 and a Classic can be tested. For every other model say "builds; not tried on a <model>".
+- Name the model a claim was seen on. For any model you have no phone for, say "builds; not tried on a <model>", not "works". (The author tests on a Q10 and a Classic, so for them that covers the Passport, the Z10, Z30, Z3 and the Leap.)
 
 **Skills** (`skills/`): `bb10-cascades` (writing Cascades code), `bb10-pitfalls` (traps with phone-verified
 fixes), `bb10-ux` (the stock look and behaviour), `bb10-devices` (every model), `bb10-cxx20`,

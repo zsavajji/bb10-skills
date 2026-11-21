@@ -2,7 +2,7 @@
 
 Read this when: you are about to claim something works, add a test or a log line, read a phone log, or hand a build to the user.
 
-Paths in parentheses are relative to the `bb10/` folder. The evidence labels and the "builds, not works" rule are in [01-target-and-rules.md](01-target-and-rules.md) section 7; this doc is the method. Pre-build UI checks: [07-ui-build.md](07-ui-build.md). Phone access, test binaries, installs: [10-phone-access-and-install.md](10-phone-access-and-install.md).
+Paths in parentheses are relative to the folder that holds the app repos side by side (the author's `bb10/`; adjust to where yours are). The evidence labels and the "builds, not works" rule are in [01-target-and-rules.md](01-target-and-rules.md) section 7; this doc is the method. Pre-build UI checks: [07-ui-build.md](07-ui-build.md). Phone access, test binaries, installs: [10-phone-access-and-install.md](10-phone-access-and-install.md).
 
 ## 1. The test pyramid these apps use
 
@@ -66,7 +66,7 @@ Checks that need the engine and the UI together but not the real service: a prot
 | bbmusic | `bbmusic-ui.log` (every line sent and received, except positions and the hello), `bbmusicd.log` (every command, state and track change) | no cap in `UiLog.h`; never logs the engine's token (`bbmusic/docs/plan/ui.md`) |
 | hyperberry | `logs/ui.log`, `logs/hyperberryd.log`, `logs/crash.log`; also `slog2info -b hyperberry` | `ui.log` is rotated at start past 256 KB (one `.1` kept); `crash.log` keeps old crashes; QML errors to `hyperberry-qml-errors.log` in `/accounts/1000/shared/misc` or `data/` (`hyperberry/app/src/main.cpp`, `hyperberry/engine/main.go`) |
 | tengram | `logs/ui.log`, `logs/tengramd.log`; `slog2info \| grep -i tengram` | engine log: the previous file kept once it passes 1 MB (`tengram/engine/main.cpp`) |
-| older convention | `/accounts/1000/shared/misc/<app>.log`, capped (an earlier app: past 2 MB keep the newest 1 MB), copied by the user to the PC (into the project's `debug/`; once it landed in `build/`: look in both) | `hyperberry/.claude/skills/bb10-build-deploy/SKILL.md` |
+| older convention | `/accounts/1000/shared/misc/<app>.log`, capped (an earlier app: past 2 MB keep the newest 1 MB), copied by the user to the PC (into the project's `debug/`; once it landed in `build/`: look in both) | `base-bb10/skills/bb10-build-deploy/SKILL.md` |
 
 Rules, each from an incident:
 
@@ -90,7 +90,7 @@ Rules, each from an incident:
 | `FATAL:... Check failed` and SIGTRAP | Chromium code | skill, "Logs and crashes" |
 | The first `throw` crashes with SIGSEGV in `libz.so.2@_Unwind_GetLanguageSpecificData` | a toolchain image older than bb10-cxx20 v19.1.7-4 bound the unwinder to `libz` | [04-engine-cxx20.md](04-engine-cxx20.md) section 3: pin v19.1.7-4 or later, where the driver fixes it |
 | SIGFPE right after OpenSSL init | CPU-feature probing left the thread without an FPU | [06-third-party-libs.md](06-third-party-libs.md) |
-| Builds, then "symbol not found" on the phone only | an import missing from `libc.so.3` / `libm.so.2` | `hyperberry/.claude/skills/bb10-cxx20/SKILL.md`; the import check in [05-engine-go.md](05-engine-go.md) |
+| Builds, then "symbol not found" on the phone only | an import missing from `libc.so.3` / `libm.so.2` | `base-bb10/skills/bb10-cxx20/SKILL.md`; the import check in [05-engine-go.md](05-engine-go.md) |
 | The engine exits before `main` (47 ms), the UI's invoke gets error 6 `Target`, or `std::bad_alloc` / `out of memory` | the headless memory cap | [09-headless-service.md](09-headless-service.md) |
 | The engine exits 60-80 ms after launch | it took the navigator's arguments for an error | 09 section 1 |
 | The engine is slain about 6 s after launch | it did not connect to the navigator in time | 09 section 1 (`slog2info \| grep navigator`) |
@@ -124,7 +124,7 @@ Then:
 
 - Say "builds", not "works", until the phone confirms. Say what the build contains: "0.1.0.2 had a placeholder engine and was taken for a working build" (`bbmusic/docs/plan/ui.md`).
 - Say exactly what was verified and how, and name the path that ran: the wipe was first claimed from the sim's link, which runs the same code as Unlink; the user caught that Unlink itself had not been pressed (`hyperberry/docs/memory/working-with-the-user.md`, 2026-11-01).
-- Say what is untested and on which model: only the Q10 and the Classic exist here; Passport and on-screen keyboard code can only be "builds; not tried on a <model>" ([01-target-and-rules.md](01-target-and-rules.md) section 6).
+- Say what is untested and on which model: code for a model you have no phone for can only be "builds; not tried on a <model>" (the author has a Q10 and a Classic, so that means the Passport and the on-screen keyboard phones) ([01-target-and-rules.md](01-target-and-rules.md) section 6).
 - A build or probe that needs the user's finger is first checked as far as it can be without them (the engine can be driven on the phone from the Mac).
 - Install only when it will not interrupt what the user is doing: an install closes the app and its engine, the user reopens it ([10-phone-access-and-install.md](10-phone-access-and-install.md)). Test lists must be doable as written: a check that needs two notes in one chat needs them set up first.
 - The user "tests fast and reports in one line"; match each report to the logs before touching code. "Batch fixes, one build" when they ask (`bbmusic/docs/plan/ui.md`, "How the user tests").
@@ -154,4 +154,4 @@ Gates and phone findings are written down with date, phone model and build numbe
 - `phoenix/app/src/UiLog.h`, `bbmusic/app/src/UiLog.h`, `hyperberry/app/src/main.cpp`, `bbmusic/app/src/main.cpp`
 - `bbmusic/docs/plan/ui.md`, `bbmusic/docs/plan/phase0.md`, `bbmusic/docs/plan/phase1.md`
 - `hyperberry/docs/plan/pitfalls.md`, `hyperberry/docs/plan/phase0.md`, `hyperberry/docs/plan/phase8.md`, `hyperberry/docs/memory/working-with-the-user.md`, `hyperberry/docs/memory/docs-not-in-git.md`
-- `hyperberry/.claude/skills/bb10-build-deploy/SKILL.md`, `hyperberry/.claude/skills/bb10-cxx20/SKILL.md` (older)
+- `base-bb10/skills/bb10-build-deploy/SKILL.md`, `base-bb10/skills/bb10-cxx20/SKILL.md`

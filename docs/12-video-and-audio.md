@@ -2,7 +2,7 @@
 
 Read this when: your app must play a video, show decoded H.264 frames from the network, encode the camera, play or record PCM, keep sound going with the app closed, or show now-playing controls. It also holds the full OpenMAX research, so nobody repeats the failed routes.
 
-Paths in parentheses are relative to the `bb10/` folder. Why the engine is a separate process and what stays in the UI: [02-architecture.md](02-architecture.md). The headless service, its descriptor and its memory cap: [09-headless-service.md](09-headless-service.md). Phone rules (every phone rooted, one OS, 10.3.3): [01-target-and-rules.md](01-target-and-rules.md).
+Paths in parentheses are relative to the folder that holds the app repos side by side (the author's `bb10/`; adjust to where yours are). Why the engine is a separate process and what stays in the UI: [02-architecture.md](02-architecture.md). The headless service, its descriptor and its memory cap: [09-headless-service.md](09-headless-service.md). Phone rules (every phone rooted, one OS, 10.3.3): [01-target-and-rules.md](01-target-and-rules.md).
 
 Evidence labels. **Q10 / Classic (Q20)** with a date and build = seen on that phone. **builds** = compiled, not tried on a phone. **untried** = not even run. Dates 2026-11 are the newest and win over older notes and over the skills. The Classic became the test phone on 2026-11-15 (`bbmusic/docs/plan/status.md`); older notes say "Q10" for it.
 
@@ -259,7 +259,7 @@ The first picture did not show for several builds. Causes found, in order: the p
 
 ### Native-window traps (ForeignWindowControl and Screen windows)
 
-From `hyperberry/.claude/skills/bb10-pitfalls/SKILL.md` unless noted; all [Q10].
+From `base-bb10/skills/bb10-pitfalls/SKILL.md` unless noted; all [Q10].
 
 - Binding needs `SCREEN_CHILD_WINDOW`, `screen_join_window_group(main group id)` after the control exists, `SCREEN_PROPERTY_ID_STRING` = the control's `windowId`.
 - The SDK says put it at a negative z-order under Cascades' hole. At z -1 the page shows but gets **no touches** (Cascades forwards only keys). Above Cascades it takes touches, and then **nothing Cascades draws can appear over it**: no SystemToast, action menu, text magnifier or overlay. Older text in `bb10-cascades/SKILL.md` ("draws above all Cascades content and takes touches") describes the second case only; the pitfalls skill is newer and wins.
@@ -413,7 +413,6 @@ dat::playing          (also paused, stopped; a JSON object here is refused)
 
 ## Where sources disagree
 
-- Passing the decoder: `bb10-cascades` skill says a child window "draws above all Cascades content and takes touches"; the pitfalls skill and the shipped `VideoWindow` use z -1 under the hole. The pitfalls skill and the code win.
 - `phase7c.md` says the camera sends 640x480@15, 400 kbit/s, IDR every 2 s; `hyperberry/app/src/CallVideo.cpp` (2026-11-20) has 30 fps, steps and IDR every 4 s. The code wins.
 - `tengram/docs/ui-fork.md` 3.3 says the video player classes "stay: received videos use it"; the viewer uses `MediaPlayer`, and `VideoDecoder` is used by `CallVideo` only (`tengram/app/src/`).
 - `bbmusic/docs/plan/status.md` lists Bluetooth untested; commit `5dc735d` (Q20, 2026-11-15) verified it.
@@ -424,7 +423,7 @@ dat::playing          (also paused, stopped; a JSON object here is refused)
 - `hyperberry/tools/h264gate/h264gate.c`, `h264uri.c`, `h264il.c`
 - `hyperberry/app/src/VideoDecoder.h`, `VideoDecoder.cpp`, `VideoOmx.h`, `VideoFormat.cpp`, `VideoOutput.cpp`, `VideoWindow.h`, `VideoWindow.cpp`, `Nv12Rotate.h`, `CameraEncoder.h`, `CameraEncoder.cpp`, `CallVideo.h`, `CallVideo.cpp`, `CallAudio.h`, `CallAudio.cpp`, `Proximity.h`, `Proximity.cpp`
 - `hyperberry/scripts/fetch-omxil.sh`, `hyperberry/app/hyperberry.pro`, `hyperberry/app/bar-descriptor.xml`, `hyperberry/app/assets/VideoViewer.qml`, `StoryViewer.qml`, `VoicePlayer.qml`, `Recorder.qml`, `CallVideoView.qml`
-- `hyperberry/.claude/skills/bb10-pitfalls/SKILL.md` ("ForeignWindowControl and Screen windows"), `bb10-cascades/SKILL.md` ("Native windows")
+- `base-bb10/skills/bb10-pitfalls/SKILL.md` ("ForeignWindowControl and Screen windows"), `bb10-cascades/SKILL.md` ("Native windows")
 - `tengram/NOTES.md` ("Calls", "Video calls"), `tengram/docs/ui-fork.md`, `tengram/docs/HANDOFF.md`, `tengram/app/assets/VideoViewer.qml`, `tengram/app/src/Mp4Length.h`, `tengram/app/src/CallVideo.cpp`; git commits `74bb400`, `f154d37`
 - `phoenix/app/assets/VideoPage.qml`, `phoenix/engine/src/mp4/`, `phoenix/engine/src/media/video.cpp`, `phoenix/docs/protocol.md`
 - `bbmusic/PLAN.md` (sections 2, 4.3, 4.4, "If the PCM path fails its gate"), `bbmusic/docs/plan/phase0.md` (0.4-0.6), `phase1.md`, `status.md`, `ui.md`, `bbmusic/engine/src/audio/qsa_sink.cpp`, `equalizer.cpp`, `bbmusic/engine/src/platform/now_playing.cpp`, `np_protocol.cpp`; git commit `5dc735d`

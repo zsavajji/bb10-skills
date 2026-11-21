@@ -2,7 +2,7 @@
 
 Read this when: you write or change a `bar-descriptor.xml`, add a permission or an invoke target, package a build, or need to know where an installed app's files are on the phone.
 
-Paths in parentheses are relative to the `bb10/` folder. Build steps before packaging: [07-ui-build.md](07-ui-build.md). Installing the result: [10-phone-access-and-install.md](10-phone-access-and-install.md). The headless service the second process needs: [09-headless-service.md](09-headless-service.md). Signing is dead; packages are unsigned ([01-target-and-rules.md](01-target-and-rules.md) section 3).
+Paths in parentheses are relative to the folder that holds the app repos side by side (the author's `bb10/`; adjust to where yours are). Build steps before packaging: [07-ui-build.md](07-ui-build.md). Installing the result: [10-phone-access-and-install.md](10-phone-access-and-install.md). The headless service the second process needs: [09-headless-service.md](09-headless-service.md). Signing is dead; packages are unsigned ([01-target-and-rules.md](01-target-and-rules.md) section 3).
 
 ## 1. A complete descriptor for a new two-process app
 
@@ -128,7 +128,7 @@ How these parts relate: the engine asset carries `entryPointId="BBMusicService"`
 | Rule | Source and reason |
 |---|---|
 | **The `<id>` is fixed for good.** A new id is a different app beside the old; uninstalling deletes `data/` | "Fixed for good: a new id is a different app beside this one, and uninstalling deletes data/ (session.db holds the link, chats.db the only copy of the history)" (`hyperberry/app/bar-descriptor.xml`); tengram's says `db/` holds the Telegram session |
-| `versionNumber`: up to 3 parts, each 0-999 | `hyperberry/.claude/skills/bb10-build-deploy/SKILL.md` (only source) |
+| `versionNumber`: up to 3 parts, each 0-999 | `base-bb10/skills/bb10-build-deploy/SKILL.md` (only source) |
 | `buildId`: 0-65535; `Package-Version` = `versionNumber.buildId` | same skill. Phoenix/bbmusic keep `<buildId>1</buildId>` as a placeholder |
 | **`-buildIdFile` overwrites `buildId` at packaging, and every package must get a new one** | "the installer keeps the old app when Package-Version (versionNumber.buildId) didn't change" (`hyperberry/app/bar-descriptor.xml`). "Three rounds of fixes were once 'tested' on a stale build" (skill). Scripts keep `build/app-buildid.txt` (phoenix, bbmusic) or `build/buildid.txt` (hyperberry, tengram), create it with `1` when missing, and print `Package-Version` |
 | **Every ELF asset gets `type="Qnx/Elf"`** | only `Qnx/Elf` assets get the execute bit; a binary copied to shared storage loses it (skill). That includes `.so` files and helper executables |
@@ -236,7 +236,7 @@ rm -f assets/.assets.index
 ```
 
 - No `-sign`. The package is unsigned; the package id looks like `com.x.app.testRel_...` (skill: "`Package-Id: testRel_...`"; on the phone the folder is `com.zsavajji.tengram.testRel_jji_tengram30796029`, `tengram/docs/HANDOFF.md` section 3).
-- No `-devMode` in any of the four build scripts. The older skill notes: "An earlier app packaged without `-devMode` and installed fine; some third-party apps use `-devMode` (needed to reach app data remotely)". Do not add it.
+- No `-devMode` in any of the four build scripts. Do not add it.
 - `-buildIdFile` reads the next build id from the file ([section 3](#3-rules-each-with-its-source)).
 
 Verify before handing over (the build scripts print the first two):
@@ -263,7 +263,7 @@ Size: the engine is inside the bar; tengram's static `tengramd` is 37 MB (`tengr
 | `/apps/<pkg>/META-INF/MANIFEST.MF` | the installed version: `grep Package-Version /apps/com.zsavajji.hyperberry*/META-INF/MANIFEST.MF` (`hyperberry/docs/memory/q10-root-ssh.md`) |
 | `/var/addons/<name>` | root-installer addons ([09-headless-service.md](09-headless-service.md)) |
 
-Sources: `hyperberry/.claude/skills/bb10-build-deploy/SKILL.md` ("On the phone"), `tengram/docs/HANDOFF.md` section 3.
+Sources: `base-bb10/skills/bb10-build-deploy/SKILL.md` ("On the phone"), `tengram/docs/HANDOFF.md` section 3.
 
 ## 8. Secrets at build time
 
@@ -293,12 +293,11 @@ The descriptor then says `<asset path="../build/headless-mem.zip">headless-mem.z
 
 - `tengram/app/bar-descriptor.xml` says `-buildIdFile` is used by `scripts/build-ui.sh`; the packaging is in `tengram/scripts/build-app.sh`. The script wins.
 - hyperberry's phase-0 notes say the boot filter was `bb.action.system.STARTED`; the descriptors use `bb.action.system.TIMER_FIRED`. See [09-headless-service.md](09-headless-service.md).
-- The skill's `<permission>` listing and `-devMode` note are the older text; the four descriptors and build scripts are newer and used here.
 
 ## Sources
 
 - `phoenix/app/bar-descriptor.xml`, `bbmusic/app/bar-descriptor.xml`, `hyperberry/app/bar-descriptor.xml`, `tengram/app/bar-descriptor.xml`
 - `phoenix/scripts/build-app.sh`, `bbmusic/scripts/build-app.sh`, `hyperberry/scripts/build-app.sh`, `tengram/scripts/build-app.sh`, `tengram/engine/build.sh`
-- `hyperberry/.claude/skills/bb10-build-deploy/SKILL.md` (older), `hyperberry/docs/plan/pitfalls.md`, `hyperberry/docs/plan/phase0.md`
+- `base-bb10/skills/bb10-build-deploy/SKILL.md`, `hyperberry/docs/plan/pitfalls.md`, `hyperberry/docs/plan/phase0.md`
 - `tengram/docs/HANDOFF.md`, `tengram/docs/ui-fork.md`, `bbmusic/docs/signin-card.md`, `bbmusic/app/src/main.cpp`
 - `hyperberry/app/src/MemoryPatch.cpp`, `hyperberry/docs/memory/q10-root-ssh.md`, `phoenix/.gitignore`, `tengram/.gitignore`

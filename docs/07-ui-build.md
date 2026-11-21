@@ -2,9 +2,9 @@
 
 Read this when: you write the `.pro` file, the build script or `main.cpp` of a new app's UI, or the app quits at start / a page never opens and you need to know which check would have caught it.
 
-Paths in parentheses are relative to the `bb10/` folder. The UI is built in `yamsergey/bb10-ndk:0.6` (images and compiler choice: [03-toolchains.md](03-toolchains.md)); the descriptor and the `.bar` are in [08-packaging.md](08-packaging.md). Cascades coding rules and UI behaviour traps are in the skills, not here: [../skills/bb10-cascades/SKILL.md](../skills/bb10-cascades/SKILL.md), [../skills/bb10-pitfalls/SKILL.md](../skills/bb10-pitfalls/SKILL.md).
+Paths in parentheses are relative to the folder that holds the app repos side by side (the author's `bb10/`; adjust to where yours are). The UI is built in `yamsergey/bb10-ndk:0.6` (images and compiler choice: [03-toolchains.md](03-toolchains.md)); the descriptor and the `.bar` are in [08-packaging.md](08-packaging.md). Cascades coding rules and UI behaviour traps are in the skills, not here: [../skills/bb10-cascades/SKILL.md](../skills/bb10-cascades/SKILL.md), [../skills/bb10-pitfalls/SKILL.md](../skills/bb10-pitfalls/SKILL.md).
 
-Source priority: where `.pro` files, build scripts and 2026-11 notes disagree with the older skills in `hyperberry/.claude/skills/`, the newer app source wins. Cases are listed under "Where sources disagree" at the end.
+Source priority: where `.pro` files, build scripts and 2026-11 notes disagree with an app's own older notes (for example `hyperberry/docs/plan/pitfalls.md`), the newer app source wins. Cases are listed under "Where sources disagree" at the end.
 
 ## 1. The `.pro` file of a plain-executable app
 
@@ -73,7 +73,7 @@ hyperberry and tengram compile third-party C files straight into the UI target. 
 - SQLite amalgamation and Tengram's SQLCipher driver (`SQLITE_HAS_CODEC` and the other `DEFINES` copied from TDLib's flags), `QMAKE_CFLAGS_WARN_ON = -w` to silence the C libraries' warnings.
 - `$$files($$PWD/src/*Bubble.cpp)`: a glob, so files added in parallel need no `.pro` edit. `$$PWD`-relative because qmake runs in the build folder; re-run qmake after adding a file (`hyperberry/docs/plan/pitfalls.md`, "Building and installing").
 - The OpenMAX IL headers are fetched and put on `INCLUDEPATH`; the core library itself is `dlopen()`ed from the phone (`/base/lib/libOmxCore.so`), so nothing links.
-- C defines do not go through `DEFINES` alone: "`DEFINES` reach C++ only, so C defines go through `-Wc,"-D..."` too" (`hyperberry/.claude/skills/bb10-build-deploy/SKILL.md`, same text in `base-bb10/skills/bb10-build-deploy/SKILL.md`). Tengram's `.pro` sets `DEFINES` for `sqlite3.c`; check that your C file really sees them.
+- C defines do not go through `DEFINES` alone: "`DEFINES` reach C++ only, so C defines go through `-Wc,"-D..."` too" (`base-bb10/skills/bb10-build-deploy/SKILL.md`). Tengram's `.pro` sets `DEFINES` for `sqlite3.c`; check that your C file really sees them.
 
 ### lupdate and codecs
 
@@ -90,7 +90,7 @@ lupdate_only {
 
 ## 2. Why not `CONFIG += cascades10`
 
-`CONFIG += cascades10` is the Momentics default (and a third-party starter app's). It builds a release as `o.le-v7/lib<name>.so`, for `<entryPointType>Qnx/Cascades</entryPointType>`; the descriptor must then point at that `.so` and `main` needs `Q_DECL_EXPORT`. "A descriptor that expects an executable fails with `Invalid asset path` (checked by building that starter app)." Without `cascades10` (`TEMPLATE = app` plus the libs) the output is a plain executable wherever `DESTDIR` says (`hyperberry/.claude/skills/bb10-build-deploy/SKILL.md`).
+`CONFIG += cascades10` is the Momentics default (and a third-party starter app's). It builds a release as `o.le-v7/lib<name>.so`, for `<entryPointType>Qnx/Cascades</entryPointType>`; the descriptor must then point at that `.so` and `main` needs `Q_DECL_EXPORT`. "A descriptor that expects an executable fails with `Invalid asset path` (checked by building that starter app)." Without `cascades10` (`TEMPLATE = app` plus the libs) the output is a plain executable wherever `DESTDIR` says (`base-bb10/skills/bb10-build-deploy/SKILL.md`).
 
 So: no `cascades10`, no Momentics `config.pri` (a generated file with source globbing and per-config `DESTDIR`; "a self-contained `.pro` builds fine with plain qmake"), and `Q_DECL_EXPORT int main(int argc, char **argv)` as in `phoenix/app/src/main.cpp`. The template comment says the same (`base-bb10/skills/bb10-cascades/template/hello.pro`): either works, the plain executable is simpler.
 
@@ -156,7 +156,7 @@ Source: `phoenix/scripts/check-qml-handlers.py` (bbmusic has its own copy; the t
 
 ### 4.3 Check 5: `cascades-qmllint.sh`
 
-In base-bb10: `base-bb10/skills/bb10-build-deploy/scripts/cascades-qmllint.sh` (with `qmltypes6.py` and `qtquick1.qmltypes`; byte-identical to the copy under `hyperberry/.claude/skills/bb10-build-deploy/scripts`). Qt 6 `qmllint` with the NDK's own Cascades type info, cached in `~/.cache/bb10-qmllint` (first run pulls the type info from the NDK image; on macOS it runs qmllint in a small Debian image).
+In base-bb10: `base-bb10/skills/bb10-build-deploy/scripts/cascades-qmllint.sh` (with `qmltypes6.py` and `qtquick1.qmltypes`; the same script is used by the app repos' build scripts). Qt 6 `qmllint` with the NDK's own Cascades type info, cached in `~/.cache/bb10-qmllint` (first run pulls the type info from the NDK image; on macOS it runs qmllint in a small Debian image).
 
 - **Exit 255** = syntax error or duplicate id: the app would quit at start. Stop the build.
 - **Warnings (exit 0) are real**: misspelt properties, signals or enum values ("Did you mean `hintText`?"), wrong child types (an `ActionItem` in a `Container`), two children in a `Page`'s single `content`. Read every one.
@@ -315,7 +315,7 @@ Qt 4.8 QML, `bb.cascades 1.4`. Build- and parse-level facts from `hyperberry/doc
 | `Q_INVOKABLE` with a default argument | moc clones it per arity; prefer two names (untested on BB10) |
 | `QElapsedTimer` has no constructor | call `invalidate()` in the constructor: stack garbage read as "a START went out just now" and the engine never started |
 | A forward-declared class does not convert to its base | include the header |
-| C++ dialect | older notes say gcc 4.6.3, C++98 (no `auto`, lambdas, `nullptr`, range-for; `SIGNAL`/`SLOT`). hyperberry and tengram compile with gnu++11 today ([03-toolchains.md](03-toolchains.md)); phoenix and bbmusic stay on the default |
+| C++ dialect | gcc 4.6.3 means C++98 (no `auto`, lambdas, `nullptr`, range-for; `SIGNAL`/`SLOT`); hyperberry and tengram compile with gnu++11 ([03-toolchains.md](03-toolchains.md)); phoenix and bbmusic stay on the default |
 
 Behaviour-level traps (focus, keyboard, menus, lists, `ListItem.view`, a changed-signal that also fires when code sets the value) are in [../skills/bb10-pitfalls/SKILL.md](../skills/bb10-pitfalls/SKILL.md). The Mac editor's red C++ errors for `bb/cascades/...` includes are noise: the NDK's compile is the check (`hyperberry/docs/plan/pitfalls.md`).
 
@@ -350,19 +350,18 @@ Pin each download by commit and sha256, and keep fetched files out of git. Icon 
 
 ## 9. Build traps
 
-- "Nothing to be done" from `make` after a QML-only change is fine: QML ships as assets (`hyperberry/.claude/skills/bb10-build-deploy/SKILL.md`, same text in `base-bb10/skills/bb10-build-deploy/SKILL.md`).
+- "Nothing to be done" from `make` after a QML-only change is fine: QML ships as assets (`base-bb10/skills/bb10-build-deploy/SKILL.md`).
 - After adding to `LIBS`, check qmake regenerated the Makefile: `grep -c lbps build/Makefile` (same skill).
 - The packager writes `assets/.assets.index` into the source tree: the build scripts `rm -f` it; git-ignore it.
 - Two agents building in parallel use two build folders (`build/ui` and `build/ui-b` in `tengram/docs/HANDOFF.md` section 4; `build/ui-a`, `build/ui-b` in `hyperberry/docs/plan/pitfalls.md`).
 - Docker under OrbStack can read a file just edited at its old size (truncated or old content): run again, and after packaging check that the bar holds the change (`unzip -p build/NAME.bar native/assets/X.qml | grep ...`) (`hyperberry/docs/plan/pitfalls.md`, 2026-11-01).
 - The Mac sleeps during long runs (`caffeinate -i -m -s -t <s>`); OrbStack can hang after sleep (`orbctl stop`, wait 100 s, `orbctl start`) (`tengram/docs/HANDOFF.md` section 4).
-- Docker here is rootless: files written as root in the container belong to the user on the host. Never `chown` inside the container (`hyperberry/.claude/skills/bb10-build-deploy/SKILL.md`, same text in `base-bb10/skills/bb10-build-deploy/SKILL.md`).
+- Docker here is rootless: files written as root in the container belong to the user on the host. Never `chown` inside the container (`base-bb10/skills/bb10-build-deploy/SKILL.md`).
 - Fixed paths: NDK target `/root/bbndk/target_10_3_1_995/qnx6`, host tools `/root/bbndk/host_10_3_1_12/linux/x86/usr/bin` ([03-toolchains.md](03-toolchains.md)).
 
 ## Where sources disagree
 
-- `hyperberry/.claude/skills/bb10-build-deploy/SKILL.md` says gcc 4.8.3 is "untried with Cascades". `hyperberry/app/hyperberry.pro` and `tengram/app/tengram.pro` (2026-11-20) build with it. The `.pro` files win.
-- The same skill's older notes and `hyperberry/docs/plan/pitfalls.md` say "GCC 4.6.3, so C++98". Still true for phoenix and bbmusic only.
+- `hyperberry/docs/plan/pitfalls.md` says "GCC 4.6.3, so C++98". That holds for phoenix and bbmusic only.
 - `phoenix/scripts/build-app.sh` points `LINT=` at an absolute path inside the hyperberry repo (not reproduced here); base-bb10 holds the same script.
 
 ## Sources
@@ -372,5 +371,5 @@ Pin each download by commit and sha256, and keep fetched files out of git. Icon 
 - `phoenix/scripts/check-qml-handlers.py`, `bbmusic/scripts/check-qml-handlers.py`
 - `phoenix/app/src/main.cpp`, `bbmusic/app/src/main.cpp`, `hyperberry/app/src/main.cpp`, `tengram/app/src/main.cpp`, `phoenix/app/src/UiLog.h`, `bbmusic/app/src/UiLog.h`
 - `phoenix/scripts/gen-icons.py`, `phoenix/scripts/gen-app-icon.py`, `bbmusic/scripts/gen-icons.py`, `tengram/scripts/gen-icon.py`, `tengram/scripts/fetch-emoji.sh`, `phoenix/.gitignore`
-- `hyperberry/.claude/skills/bb10-build-deploy/SKILL.md` (older), `base-bb10/skills/bb10-build-deploy/scripts/cascades-qmllint.sh`, `base-bb10/skills/bb10-cascades/template/hello.pro`
+- `base-bb10/skills/bb10-build-deploy/SKILL.md`, `base-bb10/skills/bb10-build-deploy/scripts/cascades-qmllint.sh`, `base-bb10/skills/bb10-cascades/template/hello.pro`
 - `hyperberry/docs/plan/pitfalls.md`, `hyperberry/docs/plan/design.md`, `bbmusic/docs/plan/ui.md`, `tengram/docs/HANDOFF.md`

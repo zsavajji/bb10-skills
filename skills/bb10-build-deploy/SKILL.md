@@ -1,6 +1,6 @@
 ---
 name: bb10-build-deploy
-description: Build, package, lint, install and debug BlackBerry 10 apps — the 10.3.1 Native SDK in Docker (yamsergey/bb10-ndk:0.6, qcc with GCC 4.6.3 or 4.8.3, qmake, blackberry-nativepackager), the checks that run before every build (lupdate parse, QML handler check, qmllint), bar-descriptor.xml (ids, versions, -buildIdFile, assets, Qnx/Elf, icons, permissions, env, invoke targets, headless entry point and memory class), unsigned .bar installs on rooted phones (installer PPS job over root SSH, Sachesi, DDPB), pathtrust, on-device paths, logs and crash diagnosis, failure signatures. Use when building or packaging a BB10 app, editing a bar descriptor, handing a build to the user for phone testing, or working out why an app quits, keeps its old version, or misbehaves on the phone.
+description: Build, package, lint, install and debug BlackBerry 10 apps — the 10.3.1 Native SDK in Docker (yamsergey/bb10-ndk:0.6, qcc with GCC 4.6.3 or 4.8.3, qmake, blackberry-nativepackager), the checks that run before every build (lupdate parse, QML handler check, qmllint), bar-descriptor.xml (ids, versions, -buildIdFile, assets, Qnx/Elf, icons, permissions, env, invoke targets, headless entry point and memory class), unsigned .bar installs on rooted phones (installer PPS job over root SSH, Sachesi, DBBT), pathtrust, on-device paths, logs and crash diagnosis, failure signatures. Use when building or packaging a BB10 app, editing a bar descriptor, handing a build to the user for phone testing, or working out why an app quits, keeps its old version, or misbehaves on the phone.
 ---
 
 # Build, package and install BB10 apps
@@ -23,7 +23,7 @@ Every phone is rooted, nothing is signed, 10.3.3 is the last OS: [01](../../docs
 - **Default: GCC 4.6.3** (`qcc -Vgcc_ntoarmv7le`), partial C++11, written as C++98. BBMusic and Phoenix use it. [app, Q10, Classic]
 - **GCC 4.8.3 with `-std=gnu++11`**: HyperBerry and Tengram build their UI with it, compiled with the `_cpp` variant and linked
   against 4.6.3's Dinkumware `libcpp`, so one C++ library stays in the process. **Verified on the Q10 and the Classic, 2026-11-20**
-  (old claim "untried with Cascades" is superseded). Put these eight lines in the `.pro` and change nothing:
+  (not "untried with Cascades"). Put these eight lines in the `.pro` and change nothing:
 
 ```
 QMAKE_CC = qcc -V4.8.3,gcc_ntoarmv7le
@@ -190,7 +190,7 @@ Every phone is rooted and runs unsigned packages (signing servers died in Januar
      grep -E "^(result|errorstr|error|message|actual_version)" $J; rm -f /var/rootdata/N.bar $J'
    ```
    `N` is a unique tag. A good install prints `result::success` and `actual_version::<versionNumber>.<buildId>`. The phone has no `printf`: use `echo >>`.
-2. **The user's own route**: Sachesi or DDPB (DBBT is another) with Development Mode on (Settings, Security and Privacy). Hand over the `.bar`.
+2. **The user's own route**: Sachesi or DBBT with Development Mode on (Settings, Security and Privacy). Hand over the `.bar`.
 3. **`blackberry-deploy` / BarDeploy from the Mac**: exists in the SDK, tried 2026-10-31 and **never completed end to end**
    ([10](../../docs/10-phone-access-and-install.md) section 6).
 

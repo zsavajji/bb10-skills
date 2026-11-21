@@ -1,14 +1,14 @@
 # base-bb10
 
 What it takes to build a native BlackBerry 10 app in 2026, written for a coding agent that starts a new one.
-Everything here was learned building four apps that sit beside this repo, and is cited to their files:
+Everything here was learned building four apps (on the author's machine they sit beside this repo, in one folder, and the citations are paths in that layout):
 
 | App | What | UI | Engine | Engine runs as |
 |---|---|---|---|---|
 | [hyperberry](https://github.com/zsavajji/hyperberry) | WhatsApp client | Cascades, gcc 4.8.3 | Go (go-qnx) | headless service |
-| `../tengram` | Telegram client | Cascades, gcc 4.8.3 (fork of HyperBerry's UI) | C++20 over TDLib | headless service |
+| [tengram](https://github.com/zsavajji/tengram) | Telegram client | Cascades, gcc 4.8.3 (fork of HyperBerry's UI) | C++20 over TDLib | headless service |
 | [bbmusic](https://github.com/zsavajji/bbytmusic) | YouTube Music client | Cascades, gcc 4.6.3 | C++20, libcurl + wolfSSL | headless service |
-| `../phoenix` | Reddit client | Cascades, gcc 4.6.3 | C++20, libcurl + OpenSSL | plain child of the UI |
+| [phoenix](https://github.com/zsavajji/phoenix) | Reddit client | Cascades, gcc 4.6.3 | C++20, libcurl + OpenSSL | plain child of the UI |
 
 The toolchain is [bb10-cxx20](https://github.com/zsavajji/bb10-cxx20); the headless memory patch is [rlimit-patch](https://github.com/zsavajji/authman-rlimit).
 Source paths such as `hyperberry/PLAN.md` are relative to the app's own repo.
@@ -22,8 +22,8 @@ short form of everything below, with a pointer to the doc for each topic.
    another OS version.
 2. **Every phone is rooted.** Root-only routes are product design. No "without root" fallbacks.
 3. **Nothing is signed.** The signing servers died in January 2022; packages are unsigned.
-4. **Everything builds from the Mac in Docker**: the UI in `yamsergey/bb10-ndk:0.6` (Native SDK 10.3.1,
-   `qcc`), the engine in an image made from `bb10-cxx20` (clang 19, C++20).
+4. **Everything builds in Docker, on any host** (macOS, Linux or WSL): the UI in [`yamsergey/bb10-ndk:0.6`](https://hub.docker.com/r/yamsergey/bb10-ndk) (Native SDK 10.3.1,
+   `qcc`), the engine in an image made from [`bb10-cxx20`](https://github.com/zsavajji/bb10-cxx20) ([`ghcr.io/zsavajji/bb10-cxx20`](https://github.com/zsavajji/bb10-cxx20/pkgs/container/bb10-cxx20)) (clang 19, C++20).
 5. **Qt and Cascades use GCC's ABI with Dinkumware's C++ library; the engine uses libc++.** The two never share
    a process, except through a C API.
 6. **A headless process is capped at 30 MiB** (3 MiB without a memory class), raised to 128 MiB by the
@@ -53,8 +53,7 @@ Details and sources: [docs/01-target-and-rules.md](docs/01-target-and-rules.md).
 
 ## The skills
 
-Six Claude Code skills, in `skills/`, updated on 2026-11-21 from the copies in `../hyperberry/.claude/skills/`
-(which are older; these are the ones to keep current). They hold the platform knowledge that is not about the
+Six Claude Code skills, in `skills/`. They hold the platform knowledge that is not about the
 build pipeline. Link or copy them into `~/.claude/skills/` or a project's `.claude/skills/`.
 
 | Skill | Covers |
@@ -88,5 +87,4 @@ build pipeline. Link or copy them into `~/.claude/skills/` or a project's `.clau
 
 Each doc ends with the files it was written from. When an app teaches something new, change the doc of that
 concern, keep the citation, and change [AGENT_CONTEXT.md](AGENT_CONTEXT.md) if the short form says otherwise.
-The older primer [BB10_CONTEXT.md](BB10_CONTEXT.md) predates the Docker toolchains and is kept for its API
-cookbook; AGENT_CONTEXT.md replaces it as the file to paste.
+[BB10_CONTEXT.md](BB10_CONTEXT.md) is the Cascades API cookbook; AGENT_CONTEXT.md is the file to paste.

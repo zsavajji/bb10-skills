@@ -2,7 +2,7 @@
 
 Read this when: you design or size a page for BB10 and must decide what to do about the Q10's and Classic's square 720x720 screens, the Passport's 1440x1440, the tall all-touch phones, OLED against LCD, the keyboard-phone inputs, icons and splash screens.
 
-Paths in parentheses are relative to the `bb10/` folder. The one OS and the rooted phones: [01-target-and-rules.md](01-target-and-rules.md). Building the UI and the QML lint: [07-ui-build.md](07-ui-build.md). Video windows on a page: [12-video-and-audio.md](12-video-and-audio.md) section 5. The tables here overlap the skills `hyperberry/.claude/skills/bb10-devices/SKILL.md` and `bb10-ux/SKILL.md` on purpose; the rest is what the four apps did and measured.
+Paths in parentheses are relative to the folder that holds the app repos side by side (the author's `bb10/`; adjust to where yours are). The one OS and the rooted phones: [01-target-and-rules.md](01-target-and-rules.md). Building the UI and the QML lint: [07-ui-build.md](07-ui-build.md). Video windows on a page: [12-video-and-audio.md](12-video-and-audio.md) section 5. The tables here overlap the skills `base-bb10/skills/bb10-devices/SKILL.md` and `bb10-ux/SKILL.md` on purpose; the rest is what the four apps did and measured.
 
 Evidence labels. **Q10** / **Classic (Q20)** = seen or measured on that phone (with date or build). **SDK profile** = the 10.3.1 SDK's `blackberry-sdk-descriptor.xml` (read by the skill, not on a phone). **Guide** = BlackBerry's 10.3 UI Guidelines digest. **Spec sheet** = public specs. **Builds; not tried on a <model>** = compiled only.
 
@@ -28,7 +28,7 @@ Evidence labels. **Q10** / **Classic (Q20)** = seen or measured on that phone (w
 | Passport | Snapdragon 801, 4x Krait 400, 2.26 GHz | Adreno 330 | 3 GB | an earlier app's notes |
 | Z3 | Snapdragon 400, 2x Krait, 1.2 GHz | Adreno 305 | 1.5 GB | spec sheet |
 
-(`hyperberry/.claude/skills/bb10-devices/SKILL.md`, `bb10-ux/references/ui-guidelines.md` pages 120-124.) Panels and Active Frame sizes come from the guide; pixels, ppi, px/du and icons from the SDK profiles. All phones are 32-bit ARMv7; a process has about 2 GB of address space shared with graphics and network.
+(`base-bb10/skills/bb10-devices/SKILL.md`, `bb10-ux/references/ui-guidelines.md` pages 120-124.) Panels and Active Frame sizes come from the guide; pixels, ppi, px/du and icons from the SDK profiles. All phones are 32-bit ARMv7; a process has about 2 GB of address space shared with graphics and network.
 
 The Classic's 291 ppi (guide: 294) and its 8 px/du are the only Classic numbers the apps rely on; HyperBerry tells it from the Q10 by `ui.du(1) < 9` on a 720x720 screen (`hyperberry/app/assets/Composer.qml`).
 
@@ -148,13 +148,20 @@ Container {
 ```
 (`tengram/app/assets/TapArea.qml`) Use `focusPolicy: FocusPolicy.Key` beside a text field so a touch keeps the keyboard up, `KeyAndTouch` elsewhere. 37 controls moved to `TapArea`; `tengram/docs/HANDOFF.md` called the trackpad's click on them "untried on a phone from the same evening", and the owner's test since says it does not work. `TapArea` remains fine as the touch target (its `TapHandler`). For the trackpad, the SDK's own pieces are the untried candidates: `NavigationHandler` and `TrackpadHandler` (`bb.cascades 1.4`) and the `highlighter` and `belt` samples ([../skills/bb10-devices/SKILL.md](../skills/bb10-devices/SKILL.md)). Album tiles open through the grid's `onTriggered`. Tengram's "Open in player" button and the video play button take the focus under a pale veil.
 
-Other traps (read `hyperberry/.claude/skills/bb10-pitfalls/SKILL.md` before touching input): the Passport's keyboard reports through `TouchKeyboardHandler`, not `TrackpadHandler`; with nothing focused its events reach no handler, so give a root container the focus with `focusRetentionPolicyFlags: LoseToFocusable`; shortcuts stay live after their menu closes and eat letters; the Enter that submitted comes back to the page's `KeyListener`; a keyboard-phone app must not assume a touch.
+Other traps (read `base-bb10/skills/bb10-pitfalls/SKILL.md` before touching input): the Passport's keyboard reports through `TouchKeyboardHandler`, not `TrackpadHandler`; with nothing focused its events reach no handler, so give a root container the focus with `focusRetentionPolicyFlags: LoseToFocusable`; shortcuts stay live after their menu closes and eat letters; the Enter that submitted comes back to the page's `KeyListener`; a keyboard-phone app must not assume a touch.
 
 ## 6. Performance as a design constraint
 
 - The phones have two Krait cores (Passport four) and Cascades draws on the UI thread: "keep the UI thread free; use as many worker threads as cores, not more" (`bb10-devices`). GPU drawing is about 2.5x faster than CPU rasterising (Skia, Q10).
-- **HyperBerry draws chat rows and message cards in C++** (`bb::cascades::ListItemProvider`, step 8.6; `hyperberry/README.md`: "for speed on the Q10's dual-core Krait"). The measurement that started it (Q10, 0.0.1.159, 2026-11-06): a real QML card with its menu 46 ms, without the menu 27 ms; the same in C++ 2 ms; a light text card 5 ms in QML and 0.5 ms in C++. Opening a chat took 1,018-3,107 ms on 0.0.1.156 and the last visible card came at 574-936 ms from the tap on 0.0.1.164, of which the system's slide alone is about 400 ms. Rows made in C++ keep the look "property by property"; every later look change is C++.
-- Tengram kept the pattern: "Every new Telegram feature must fit that pattern, with no heavy QML per message" (`tengram/NOTES.md`, UI speed).
+- **Lists, and anything with many elements, are drawn by C++ classes, not QML.** Tengram does it for the chat list (`ChatRow`) and for every message (`MessageCard`); HyperBerry started it (`bb::cascades::ListItemProvider`, step 8.6; `hyperberry/README.md`: "for speed on the Q10's dual-core Krait"). The measurement that started it (Q10, 0.0.1.159, 2026-11-06): a real QML card with its menu 46 ms, without the menu 27 ms; the same in C++ 2 ms; a light text card 5 ms in QML and 0.5 ms in C++. Opening a chat took 1,018-3,107 ms on 0.0.1.156 and the last visible card came at 574-936 ms from the tap on 0.0.1.164, of which the system's slide alone is about 400 ms. The pattern, read from `tengram/app/src/` (`ChatRows.h`, `MessageCards.h`, `MessageCard.h`, `AlbumBubble.h`):
+  - **A `ListItemProvider` per list** (`ChatRows`, `MessageCards`). `createItem(list, type)` builds a row once per type ("header" and "item" for chats; "header", "service", "loading", "text", "msg", "picture" for messages). `updateItem` refills a recycled row from the model's row with one call, `show(data.toMap())`, with setters in place of QML bindings. The page only keeps the `ListView` and sets `listItemProvider: MessageCards {}` (`ChatPage.qml`, `ChatList.qml`).
+  - **One `CustomControl` per row kind** (`ChatRow`, `MessageCard`, `ServiceCard`, `LoadingCard`), which also inherits `ListItemListener` for the press tint (`select`, `activate`, `reset`). Its parts are plain members: `Container`, `Label`, `ImageView`, `ActionSet`.
+  - **Build the parts once, then show and hide them.** `ChatRow` makes every part in its constructor, since the row is small, and `show()` only sets text and visibility. `MessageCard` makes the body text, time and ticks at once and every other part (sender, quote, bubbles, reaction chips) the first time a message needs it, then keeps it and hides it when the next message does not. Rows are recycled, so a part must never keep the previous row's content.
+  - **Remember what was last set** (`m_timePlace`, `m_colMax`, `m_scale`, `m_photoPath`) and skip the setter when it is the same.
+  - **Big or optional parts are classes of their own**, each a `CustomControl` with a `show()`: `MediaBubble`, `AlbumBubble`, `PollBubble`, `VoiceBubble`. `AlbumBubble` has four fixed tiles, each taking its picture from the current message.
+  - **The model is a C++ `DataModel`** (`ChatListModel`, `MessageModel`) whose rows are `QVariantMap`s; the card reads them with small helpers (`str("id")`, `flag("out")`).
+  - **Rows reach the page through the `ListView` they are made for:** QML functions and properties by name (`m_list->property("slideId")`), and a change that needs every row refilled is a signal on the list (`textScaleChanged`, `roundChanged`) wired to the provider's `itemUpdatesNeeded`.
+  - **The cost:** every later look change is C++, and a row is as wide as its content (spacers with `spaceQuota` stretch it). Pages stay QML: the call sheet, the composer and the settings.
 - **List cost findings** (`hyperberry/docs/plan/pitfalls.md`): `TitleBarScrollBehavior.Sticky` also stopped the list being resized every frame, which made rows with five or more emoji lag; a `GridListLayout` list needs `headerMode: ListHeaderMode.Standard`; a list item cannot see the page's ids, so put what it needs on the `ListView` and reach it through `ListItem.view`; `listItemProvider` takes every type, headers included; a fast flick just after a page of rows arrives shows black for up to a second.
 - **Images and glyphs.** Cascades draws text with Monotype iType. A colour emoji font drawn at 109 ppem (10.7 MB) took 15 s and 177 MB on a dense page; derived at 32 ppem (1.1 MB) about 1 s. The emoji picker uses images, not text, "images never enter the glyph cache". Fix `ImageView`'s fade: `loadEffect: ImageViewLoadEffect.None`. Tengram's sticker frames cost 4-17 ms at 180 px ("on the S4", `tests/tgs_check.c`, in the body of tengram commit `f154d37`) and a photo-heavy chat froze 6 s until previews were made on a worker (`f154d37`).
 - Bitmaps drawn for the Q10 are scaled up on the Passport; "draw them at 2x if they look soft" (`Composer.qml`). **What a bigger screen costs is not measured in any source**: nothing was run on a Passport.
@@ -202,7 +209,6 @@ The standard: **native first, stock-identical where a stock app exists**; measur
 - So write "builds; not tried on a Passport / Z10 / Z30 / Z3 / Leap" for: the zoom, the tall-screen layouts, the on-screen keyboard, the Passport touch keyboard, the 144 px and 96 px icons, the 1440x1440 and 768x1280 splashes.
 - The skills advise a one-time log line for such paths ("on-screen keyboard: N px") and a comment that marks a constant as a guess. HyperBerry's `Composer.qml` has a `ponytail:` note of that kind.
 - The Q10 is the only phone whose Active Frame (310x211) and whose 9 px/du were measured.
-- `hyperberry/.claude/skills/bb10-devices` says the owner has "one Q10"; the 2026-11 notes add the Classic (`bbmusic/docs/plan/status.md`, `hyperberry/docs/memory/q10-root-ssh.md` via [01-target-and-rules.md](01-target-and-rules.md)). The newer notes win.
 
 ## 10. Checklist for a new page
 
@@ -220,15 +226,13 @@ The standard: **native first, stock-identical where a stock app exists**; measur
 
 ## Where sources disagree
 
-- Phone count: `bb10-devices` says one Q10; 2026-11 notes add the Classic. Newer wins.
-- Icon size: the skill says new in-app icons follow 8 du (72 px at 9 px/du); BBMusic and Phoenix draw 81 px (9 du). The code is what shipped; the guide's 8 du is the rule for new work.
 - HyperBerry accent: `ui.md` `#1bd862` as primary; `Settings.cpp` and the descriptor `#12543A`. Code wins.
 - Passport zoom: a third (`41083fc`), then a fifth (`9c24d4d`). The fifth wins.
 - Stock bar height: 97 px (Tengram viewer) against 108 px (HyperBerry `ui.md`, Phoenix); different bars, both measured on the Q10.
 
 ## Sources
 
-- `hyperberry/.claude/skills/bb10-devices/SKILL.md`, `bb10-ux/SKILL.md`, `bb10-ux/references/ui-guidelines.md`, `bb10-pitfalls/SKILL.md`, `bb10-cascades/SKILL.md`
+- `base-bb10/skills/bb10-devices/SKILL.md`, `bb10-ux/SKILL.md`, `bb10-ux/references/ui-guidelines.md`, `bb10-pitfalls/SKILL.md`, `bb10-cascades/SKILL.md`
 - `hyperberry/docs/plan/ui.md`, `status.md`, `pitfalls.md`, `phase7.md`, `phase8.md`; `bbmusic/docs/plan/ui.md`, `status.md`; `tengram/docs/ui-fork.md`, `tengram/docs/HANDOFF.md`, `tengram/NOTES.md`
 - `hyperberry/app/src/CardStyle.h`, `sizes.h`, `colors.h`, `Settings.cpp`, `main.cpp`; `tengram/app/src/sizes.h`, `MessageCard.cpp`, `Settings.cpp`
 - `hyperberry/app/assets/Composer.qml`, `CallSheet.qml`, `cover.qml`, `main.qml`; `tengram/app/assets/TapArea.qml`, `VideoViewer.qml`; `bbmusic/app/assets/Hint.qml`; `phoenix/app/assets/VideoPage.qml`

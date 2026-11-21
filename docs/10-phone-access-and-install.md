@@ -2,7 +2,7 @@
 
 Read this when: you are about to touch the phone (read a log, run a test binary, install a `.bar` or an addon), or an install seems to do nothing.
 
-Paths in parentheses are relative to the `bb10/` folder. Facts about the phones and their shell: [01-target-and-rules.md](01-target-and-rules.md) sections 5-6. What to do with a log once you have it: [11-testing-and-debugging.md](11-testing-and-debugging.md). Addon and cap background: [09-headless-service.md](09-headless-service.md). Building the `.bar`: [08-packaging.md](08-packaging.md).
+Paths in parentheses are relative to the folder that holds the app repos side by side (the author's `bb10/`; adjust to where yours are). Facts about the phones and their shell: [01-target-and-rules.md](01-target-and-rules.md) sections 5-6. What to do with a log once you have it: [11-testing-and-debugging.md](11-testing-and-debugging.md). Addon and cap background: [09-headless-service.md](09-headless-service.md). Building the `.bar`: [08-packaging.md](08-packaging.md).
 
 ## 1. The rules, first
 
@@ -14,7 +14,7 @@ Paths in parentheses are relative to the `bb10/` folder. Facts about the phones 
 | **Never restart a system process.** Restarting authman "broke every app launch until a reboot". Check how a system process's clients behave before touching it. | `tengram/docs/HANDOFF.md` section 3; `rlimit-patch/research/findings.md` (Route 1) |
 | **Ask before a reboot**: another agent may be using the phone. | `hyperberry/docs/memory/q10-root-ssh.md` |
 | Do not turn Development Mode on over root SSH (it needs the device password, which only the user has). | `hyperberry/docs/memory/q10-install-bar.md` |
-| Installing: the user installs their own builds (Sachesi or DDPB). "Ask before installing by any route"; on 2026-10-31 an agent's install attempt ran long and the user said "stop it, I will install". Later, hyperberry builds went over the root route "when the user says 'install it'", and the phoenix and bbmusic scripts record that "the user allowed writes over ssh for tests on 2026-11-14". | `hyperberry/docs/memory/q10-install-bar.md`; `phoenix/scripts/install-phone.sh`; `bbmusic/docs/plan/ui.md` ("Build, install, look": "installing test builds this way. No reboots, no system settings") |
+| Installing: the user installs their own builds (Sachesi or DBBT). "Ask before installing by any route"; on 2026-10-31 an agent's install attempt ran long and the user said "stop it, I will install". Later, hyperberry builds went over the root route "when the user says 'install it'", and the phoenix and bbmusic scripts record that "the user allowed writes over ssh for tests on 2026-11-14". | `hyperberry/docs/memory/q10-install-bar.md`; `phoenix/scripts/install-phone.sh`; `bbmusic/docs/plan/ui.md` ("Build, install, look": "installing test builds this way. No reboots, no system settings") |
 | Install only when it will not interrupt what the user is doing: an install closes the app and its engine ([11-testing-and-debugging.md](11-testing-and-debugging.md)). | `tengram/docs/HANDOFF.md` section 4 |
 | Never log out a session the user needs, and keep tests on a real account in a safe place. | `tengram/docs/HANDOFF.md` section 3 |
 
@@ -190,7 +190,7 @@ Log: `/var/log/installer.log` (`[HMEM]` lines for the memory addon). Ask first. 
 
 | Route | State |
 |---|---|
-| **The user's manual route**: Sachesi or DDPB (DBBT is another) with Development Mode on (Settings, Security and Privacy) | the user's own; the usual way before the root route. Unsigned apps need a rooted phone (`hyperberry/.claude/skills/bb10-build-deploy/SKILL.md`, "Install", older) |
+| **The user's manual route**: Sachesi or DBBT with Development Mode on (Settings, Security and Privacy) | the user's own; the usual way before the root route. Unsigned apps need a rooted phone (`base-bb10/skills/bb10-build-deploy/SKILL.md`, "Install", older) |
 | **Root PPS job** (section 4) | works; used for phoenix, bbmusic, hyperberry and tengram builds when the user allows it |
 | **`blackberry-deploy` / `BarDeploy.jar` from the Mac** | "exists in the SDK but hasn't been used in this workflow" (skill). Tried 2026-10-31 and **never completed end to end** (`hyperberry/docs/memory/q10-install-bar.md`): the SDK image's container cannot reach 169.254.0.1 (the Docker VM's link-local network), so run `BarDeploy.jar` with the Mac's own Java; Homebrew Java timed out connecting to 169.254.0.1 (probably macOS's Local Network permission), while curl, nc and ssh got through; a local Python TCP relay `127.0.0.1:8443` to `169.254.0.1:443` works and BarDeploy takes `-device 127.0.0.1:8443`; an `ssh -L` tunnel through `bb10rootx` does not work (the phone resets connections that come from itself); the phone speaks only TLS 1.0 on its deploy server, so pass `-Djava.security.properties=<file>` with `jdk.tls.disabledAlgorithms=SSLv3, RC4, DES, NULL, anon` or Java fails with "peer not authenticated"; Development Mode must be on and needs the device password, and `login.cgi` answers with an empty body when it is off |
 
@@ -219,7 +219,7 @@ A pattern worth copying: a script that drives the app's engine on the phone over
 ## Where sources disagree
 
 - "The user installs every build themselves" (`hyperberry/docs/memory/q10-install-bar.md`, 2026-10-31; `tengram/docs/ui-fork.md` section 5) against root-route installs by agents when asked (same note, later; phoenix and bbmusic scripts). Rule of thumb that fits both: the user decides, per install.
-- The test phone is called "the Q10" in older notes (`bbmusic/docs/plan/ui.md`, `phoenix/scripts/install-phone.sh`) and is mostly the Classic from 2026-11-15; check `modelname`.
+- The test phone is mostly the Classic since 2026-11-15, though `bbmusic/docs/plan/ui.md` and `phoenix/scripts/install-phone.sh` still say "the Q10"; check `modelname`.
 - `hyperberry/docs/plan/phase0.md` used a third-party installer script; the PPS job in `q10-install-bar.md` is the newer, simpler route.
 
 ## Sources
@@ -231,4 +231,4 @@ A pattern worth copying: a script that drives the app's engine on the phone over
 - `hyperberry/scripts/sim.py`, `tengram/tests/engine_client.py`, `bbmusic/scripts/measure-phone.py`
 - `rlimit-patch/README.md`, `rlimit-patch/research/findings.md`
 - `bbmusic/docs/plan/ui.md`, `bbmusic/docs/plan/phase1.md`, `hyperberry/docs/plan/phase0.md`, `hyperberry/docs/plan/phase8.md`
-- `hyperberry/.claude/skills/bb10-build-deploy/SKILL.md` (older)
+- `base-bb10/skills/bb10-build-deploy/SKILL.md`

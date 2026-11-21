@@ -2,7 +2,7 @@
 
 Read this when: your app needs an engine that keeps running after the user closes the UI (messages, a connection, music), you hit `std::bad_alloc` or an engine that exits before `main`, or you want to know what the memory-cap addon does before you ask the user to install it.
 
-Paths in parentheses are relative to the `bb10/` folder. Why the engine is a separate process: [02-architecture.md](02-architecture.md) sections 1-2. The descriptor XML itself: [08-packaging.md](08-packaging.md) section 2. Installing the addon over SSH: [10-phone-access-and-install.md](10-phone-access-and-install.md). Evidence labels: **Q10** / **Classic** with a date means read or seen on that phone; "builds" means compiled only.
+Paths in parentheses are relative to the folder that holds the app repos side by side (the author's `bb10/`; adjust to where yours are). Why the engine is a separate process: [02-architecture.md](02-architecture.md) sections 1-2. The descriptor XML itself: [08-packaging.md](08-packaging.md) section 2. Installing the addon over SSH: [10-phone-access-and-install.md](10-phone-access-and-install.md). Evidence labels: **Q10** / **Classic** with a date means read or seen on that phone; "builds" means compiled only.
 
 ## 1. The descriptor side
 
@@ -65,7 +65,7 @@ A headless process runs under `RLIMIT_DATA`, set by the launcher from its capabi
 - Soft equals hard, so the app cannot raise it, and no capability grants the `rlimit` ability (`rlimit-patch/research/findings.md`). `RLIMIT_AS` and `RLIMIT_STACK` are unlimited; `RLIMIT_FREEMEM` is 970 (97 % of the phone).
 - With no class: the Go runtime exited 47 ms after launch, before `main`, and the UI's invoke got error 6 (`Target`) (`hyperberry/docs/plan/phase0.md` 0.3; `hyperberry/app/bar-descriptor.xml`; Q10, 2026-10-29). The class's size was first not printed anywhere. It is in `/etc/authman/sys.acl` only (`_sys_headless_xlarge` is in no binary).
 - What died against 30 MiB: tengram's first sync after a login (467 chats, then TDLib reloading the installed sticker sets) died with `std::bad_alloc`, again and again, until one run got through (0.1.0.3, 2026-11-17, Classic; `tengram/docs/headless-cap.md`). hyperberry: four out-of-memory crashes in `crash.log` came from single 9 MB allocations (`hyperberry/docs/plan/phase7.md`).
-- **The "3 MB and 7-25% CPU" budget** in the older cascades skill is "a 2013 BlackBerry blog ... (unverified)" (`hyperberry/.claude/skills/bb10-cascades/SKILL.md`). Measured instead: an idle unlinked Go engine held 6.4 MB of data for 30 min with no kill (Q10, 2026-10-29); bbmusic's engine used 5.6 % of a core playing for 157 s (Q10, 2026-11-14) and 7.7 % over 9 min on the Classic (2026-11-15, `bbmusic/docs/plan/ui.md` step 2.12). Battery over a night: 3 % an hour for hyperberry with the boot timer (Q10, 2026-11-06/07, `hyperberry/docs/plan/phase8.md`). Method only: [11-testing-and-debugging.md](11-testing-and-debugging.md).
+- **The "3 MB and 7-25% CPU" budget** in the older cascades skill is "a 2013 BlackBerry blog ... (unverified)" (`base-bb10/skills/bb10-cascades/SKILL.md`). Measured instead: an idle unlinked Go engine held 6.4 MB of data for 30 min with no kill (Q10, 2026-10-29); bbmusic's engine used 5.6 % of a core playing for 157 s (Q10, 2026-11-14) and 7.7 % over 9 min on the Classic (2026-11-15, `bbmusic/docs/plan/ui.md` step 2.12). Battery over a night: 3 % an hour for hyperberry with the boot timer (Q10, 2026-11-06/07, `hyperberry/docs/plan/phase8.md`). Method only: [11-testing-and-debugging.md](11-testing-and-debugging.md).
 
 ### Why the obvious fixes fail (`rlimit-patch/README.md`, `rlimit-patch/research/findings.md`)
 
@@ -150,7 +150,7 @@ reply = invoker->registerTimer(bb::system::InvokeTimerRequest(kBootTimer, rule, 
 
   Every 6 minutes is the shortest the service takes. Fires before root is up fail; the first after starts the engine; one that finds it running does nothing, so a killed engine comes back too. A timer survives reboots (`navigator_invoke.h`: "Timer registration is persistent and will survive device reboots"). A setting "Start at boot", off by default (`hyperberry/docs/plan/phase8.md` 8.2); the UI registers again at each start while it is on.
 - **Verified on the Q10, 2026-11-06/07, hyperberry 0.0.1.172, unplugged:** booted 00:05:57; with the app closed the engine started 00:12:02 on the timer's second slot (the 00:06 fire came 3 s after boot, before root), authenticated 00:12:12; a message reached the Hub at 00:16:15 with no UI running. The repeat registration at each UI start has been refused since the first (`boot timer: failed, 2 12292`), harmless: the one timer survived about ten reinstalls and the reboot. Tengram carries the same code (`tengram/app/src/Settings.cpp`); no source here records a phone test of it.
-- The older skill says: a headless service "can start at boot: ... `application.headless` invoke target filtered on `bb.action.system.STARTED`" (`hyperberry/.claude/skills/bb10-cascades/SKILL.md`). hyperberry's phase 0 tried the `STARTED` filter, found it "also fires right after an install, so every new build started its engine without a tap", removed it, and later used the timer. **The timer is what the newest sources use; do not use `STARTED`.**
+- A headless service can be started at boot by an `application.headless` invoke target filtered on `bb.action.system.STARTED`. hyperberry's phase 0 tried that filter, found it "also fires right after an install, so every new build started its engine without a tap", removed it, and later used the timer. **The timer is what the newest sources use; do not use `STARTED`.**
 - bbmusic: the engine "is not started at boot"; the UI starts it, and it stops itself when idle (below).
 
 ## 5. Lifecycle facts
@@ -185,7 +185,7 @@ What it costs: the engine dies with the UI. Nothing runs, notifies or plays afte
 ## Where sources disagree
 
 - Arguments: `hyperberry/docs/plan/phase0.md` 0.4 says "A headless launch gets no arguments"; `bbmusic/docs/plan/phase0.md` ("argv ... invoke://localhost"), `bbmusic/engine/src/main.cpp` and `tengram/docs/HANDOFF.md` (2026-11) show it does. Newer wins; `tengram/docs/ui-fork.md` section 5 says "no arguments we choose".
-- Boot filter: `STARTED` (older skill, hyperberry phase 0) against `TIMER_FIRED` (descriptors, `Settings.cpp`, phase 8). `TIMER_FIRED` wins.
+- Boot filter: `STARTED` (hyperberry phase 0) against `TIMER_FIRED` (descriptors, `Settings.cpp`, phase 8). `TIMER_FIRED` wins.
 - `tengram/engine/README.md` runs the engine as `$E data`; `tengram/engine/main.cpp` takes `--data <dir>` (a bare argument is logged and ignored). `main.cpp` wins.
 - Where the memory patch is offered: a first-use dialog (`tengram/docs/HANDOFF.md`, 2026-11-17) against Settings only (`hyperberry/docs/plan/status.md`, 2026-11-20). The newer entry wins.
 - The overlay's controls with the app closed: no controls when held by the UI's `NowPlayingConnection` (gate round 2), controls reach a plain process (0.5 settled). Both are true; the second is why now-playing moved into the engine.
@@ -200,4 +200,4 @@ What it costs: the engine dies with the UI. Nothing runs, notifies or plays afte
 - `hyperberry/docs/plan/phase0.md`, `phase7.md`, `phase8.md`, `pitfalls.md`, `design.md`, `status.md`
 - `bbmusic/docs/plan/phase0.md`, `phase1.md`, `ui.md`
 - `hyperberry/app/bar-descriptor.xml`, `tengram/app/bar-descriptor.xml`, `bbmusic/app/bar-descriptor.xml`, `phoenix/app/bar-descriptor.xml`
-- `hyperberry/.claude/skills/bb10-cascades/SKILL.md` (older)
+- `base-bb10/skills/bb10-cascades/SKILL.md`

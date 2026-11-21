@@ -14,9 +14,9 @@ Everything builds from the Mac in Docker (OrbStack). There is no SDK on the Mac 
 | Platform | linux/386 only: on Apple Silicon it runs emulated, and Docker warns "platform (linux/386) does not match the detected host platform" (seen running it, 2026-11-21) | x86-64 and arm64 (`bb10-cxx20/README.md`: "on an Apple Silicon Mac they run natively") |
 | Env | `source /root/bbndk/bbndk-env_10_3_1_995.sh` | `/opt/bb10-cxx20/bin` on `PATH` |
 
-Sources: `hyperberry/.claude/skills/bb10-build-deploy/SKILL.md`, `phoenix/scripts/build-app.sh`, `bb10-cxx20/README.md`.
+Sources: `base-bb10/skills/bb10-build-deploy/SKILL.md`, `phoenix/scripts/build-app.sh`, `bb10-cxx20/README.md`.
 
-### NDK image paths (`hyperberry/.claude/skills/bb10-build-deploy/SKILL.md`)
+### NDK image paths (`base-bb10/skills/bb10-build-deploy/SKILL.md`)
 
 - target: `/root/bbndk/target_10_3_1_995/qnx6` (`usr/include`, `armle-v7/usr/lib`, `armle-v7/usr/lib/qt4/imports` with the QML `plugins.qmltypes`)
 - host tools: `/root/bbndk/host_10_3_1_12/linux/x86/usr/bin`
@@ -104,7 +104,7 @@ Why, from the comments in those two files:
 4. **`gnu++11`, not `c++11`**: strict ISO hides the POSIX calls the app makes (`open`, `getpid`, `clock_gettime`).
 5. **Not C++20 in the UI**: clang's libc++ would sit beside Dinkumware in the same process. The engine and `libtgs.so` are clang's; `libtgs.so` shows the UI a C API only.
 
-The older skill text that says 4.8.3 is "untried with Cascades" (`hyperberry/.claude/skills/bb10-build-deploy/SKILL.md`) is **superseded** by these two apps (newer `.pro` files win). Evidence: **verified on the phone, Q10 and Classic, 2026-11-20.** The plans and handoffs don't mention it; the commits do. Tengram's commit `f154d37` ("UI on gcc 4.8.3 ... Built, installed in 0.1.0.64 to 0.1.0.83 on the Q10 and the Classic") made the switch, and later builds ran on both phones (1.0.0.93 on the Q10, 1.0.0.94 to 1.0.0.102 on the Classic, commit `ad5ae3d`). HyperBerry followed in commit `acdf8a1`, and its later builds ran on the Q10 (0.3.1.382, commit `852f471`).
+GCC 4.8.3 builds Cascades apps: these two apps use it. Evidence: **verified on the phone, Q10 and Classic, 2026-11-20.** The plans and handoffs don't mention it; the commits do. Tengram's commit `f154d37` ("UI on gcc 4.8.3 ... Built, installed in 0.1.0.64 to 0.1.0.83 on the Q10 and the Classic") made the switch, and later builds ran on both phones (1.0.0.93 on the Q10, 1.0.0.94 to 1.0.0.102 on the Classic, commit `ad5ae3d`). HyperBerry followed in commit `acdf8a1`, and its later builds ran on the Q10 (0.3.1.382, commit `852f471`).
 
 If you copy this setup into a new app, change nothing in the six `QMAKE_*` lines and keep the `-lcpp` path.
 
@@ -114,9 +114,9 @@ Which to pick for a new app: 4.8.3 with `gnu++11` if you want `override`, `final
 
 ### 3.2 C in the UI
 
-Use **`-std=gnu99`, not `c99`**: strict ISO C hides the POSIX functions (`open`, `fcntl`, `pthread_mutexattr_settype`) that SQLite's amalgamation calls, so it does not compile (`tengram/app/tengram.pro`: `QMAKE_CFLAGS += -std=gnu99`). `hyperberry/app/hyperberry.pro` uses `QMAKE_CFLAGS += -std=c99` (its only C file there is the qrcodegen QR encoder plus libwebp); tengram's is the newer and wider rule.
+Use **`-std=gnu99`, not `c99`**: strict ISO C hides the POSIX functions (`open`, `fcntl`, `pthread_mutexattr_settype`) that SQLite's amalgamation calls, so it does not compile (`tengram/app/tengram.pro`: `QMAKE_CFLAGS += -std=gnu99`). `hyperberry/app/hyperberry.pro` uses `-std=c99` and builds only because its one C file, qrcodegen, calls no POSIX function. C++ is separate: GCC 4.8.3 does C++11 with `-std=gnu++11` (section 3.1). `hyperberry/app/hyperberry.pro` uses `QMAKE_CFLAGS += -std=c99` (its only C file there is the qrcodegen QR encoder plus libwebp); tengram's is the newer and wider rule.
 
-C-only defines for qcc go through `-Wc,"-D..."`: `DEFINES` reach C++ only (`hyperberry/.claude/skills/bb10-build-deploy/SKILL.md`). Plain C third-party code can also be compiled by the UI's `.pro`: libwebp (decoder only), qrcodegen, SQLite ([06-third-party-libs.md](06-third-party-libs.md)).
+C-only defines for qcc go through `-Wc,"-D..."`: `DEFINES` reach C++ only (`base-bb10/skills/bb10-build-deploy/SKILL.md`). Plain C third-party code can also be compiled by the UI's `.pro`: libwebp (decoder only), qrcodegen, SQLite ([06-third-party-libs.md](06-third-party-libs.md)).
 
 ### 3.3 Engines and ported libraries
 
@@ -124,7 +124,7 @@ Use `bb10-clang` / `bb10-clang++` (C++20, `-std=gnu++20` by default) from bb10-c
 
 **Never link libc++ code into the Cascades process.** If the UI needs a C++14+ library, build it with clang into its own `.so` that exports a **C API only**, and call it as plain C. The one case: Tengram's **`libtgs.so`** (rlottie, needs C++14), built by `tengram/scripts/build-tgs.sh` with libc++ linked in statically and a version script (`tests/tgs.map`), shipped in the bar's `native/lib`; the UI links `-L$$PWD/../build/prefix/lib -ltgs -lz` (`tengram/app/tengram.pro`). Never pass `std::string`, containers or exceptions across (`bb10-cxx20/README.md` "Not for Cascades/Qt code").
 
-C libraries (OpenSSL, zlib, mongoose) can also be built with the NDK's GCC 4.6 and linked statically into the UI (`hyperberry/.claude/skills/bb10-build-deploy/SKILL.md`: `CC=ntoarmv7-gcc AR=ntoarmv7-ar RANLIB=ntoarmv7-ranlib ./Configure gcc no-shared no-tests no-asm no-ui-console`). Tengram instead links a clang-built `libcrypto.a` into the UI for SQLCipher: it then needs the `__aeabi_mem*` helpers and `-lsocket` ([06-third-party-libs.md](06-third-party-libs.md)).
+C libraries (OpenSSL, zlib, mongoose) can also be built with the NDK's GCC 4.6 and linked statically into the UI (`base-bb10/skills/bb10-build-deploy/SKILL.md`: `CC=ntoarmv7-gcc AR=ntoarmv7-ar RANLIB=ntoarmv7-ranlib ./Configure gcc no-shared no-tests no-asm no-ui-console`). Tengram instead links a clang-built `libcrypto.a` into the UI for SQLCipher: it then needs the `__aeabi_mem*` helpers and `-lsocket` ([06-third-party-libs.md](06-third-party-libs.md)).
 
 ### 3.4 Decision table
 
@@ -143,7 +143,7 @@ C libraries (OpenSSL, zlib, mongoose) can also be built with the NDK's GCC 4.6 a
 
 | Trap | What to do | Source |
 |---|---|---|
-| Docker is **rootless** here: files written as root in the container belong to the user on the host | **Never `chown` in the container**: it maps to uid 100999 and locks the user out | `hyperberry/.claude/skills/bb10-build-deploy/SKILL.md` |
+| Docker is **rootless** here: files written as root in the container belong to the user on the host | **Never `chown` in the container**: it maps to uid 100999 and locks the user out | `base-bb10/skills/bb10-build-deploy/SKILL.md` |
 | **zsh does not word-split** `$vars` | wrap loops over file lists in `sh -c` / `bash -c` | same |
 | The mount covers **only the project** | files from sibling repos must be **copied in** first (Tengram copies `../rlimit-patch/build/headless-mem.zip` to `build/headless-mem.zip`; a symlink would not resolve in the container) | `tengram/scripts/build-app.sh` |
 | **Single-quoted `bash -c '...'` blocks cannot contain an apostrophe** | no apostrophes in comments or strings inside; Tengram's build.sh escapes one as `'"'"'` | `phoenix/scripts/build-app.sh` ("No apostrophes in here: this is one single-quoted string of the outer shell"), `tengram/engine/build.sh` |
@@ -153,19 +153,19 @@ C libraries (OpenSSL, zlib, mongoose) can also be built with the NDK's GCC 4.6 a
 | Chained build steps with `;` hide an early failure | chain with `&&` | `hyperberry/docs/plan/pitfalls.md` (0.8) |
 | Two builds at once clash in one build folder | give each its own (`build/ui-a`, `build/ui-b`); files two agents add in parallel go into the `.pro` by a glob (`$$files($$PWD/src/*Bubble.cpp)`: relative to `$$PWD`, since qmake runs in the build folder; re-run qmake after adding one) | `hyperberry/docs/plan/pitfalls.md` (8.6) |
 | `td_api` units take over 1 GB of RAM each | `JOBS=2 scripts/build-deps.sh` if the compiler is OOM-killed | `tengram/scripts/build-deps.sh` |
-| "Nothing to be done" from `make` after a QML-only change | fine: QML ships as assets | `hyperberry/.claude/skills/bb10-build-deploy/SKILL.md` |
+| "Nothing to be done" from `make` after a QML-only change | fine: QML ships as assets | `base-bb10/skills/bb10-build-deploy/SKILL.md` |
 | After adding a library to `LIBS`, qmake may not regenerate | `grep -c lbps build/Makefile` | same |
 | The packager writes `assets/.assets.index` into the source tree | delete it after packaging (`rm -f assets/.assets.index`) and git-ignore it | `phoenix/scripts/build-app.sh`; `bbmusic/.gitignore` |
 | [bb10-cxx20](https://github.com/zsavajji/bb10-cxx20) is the user's repo | do not change it from an app | `tengram/docs/HANDOFF.md` §4 |
 
-Where to run `qmake`/`make` and package: [07-ui-build.md](07-ui-build.md), [08-packaging.md](08-packaging.md). Rebuild the runtimes themselves with `scripts/fetch-llvm.py` then `scripts/build-runtimes.sh SRC PREFIX` inside XIAZY's image (`hyperberry/.claude/skills/bb10-cxx20/SKILL.md`); for a new app you almost never need to.
+Where to run `qmake`/`make` and package: [07-ui-build.md](07-ui-build.md), [08-packaging.md](08-packaging.md). Rebuild the runtimes themselves with `scripts/fetch-llvm.py` then `scripts/build-runtimes.sh SRC PREFIX` inside XIAZY's image (`base-bb10/skills/bb10-cxx20/SKILL.md`); for a new app you almost never need to.
 
 ## Sources
 
 - `bb10-cxx20/README.md`, `bb10-cxx20/Dockerfile`, `bb10-cxx20/Dockerfile.release`, `bb10-cxx20/out/release/NOTES.md`, `bb10-cxx20/out/release-v19.1.7-4/notes.md`, `bb10-cxx20/out/release-v19.1.7-5/notes.md`
 - `phoenix/docker/Dockerfile`, `bbmusic/docker/Dockerfile`, `tengram/docker/Dockerfile`, `hyperberry/docker/Dockerfile`
 - `phoenix/app/phoenix.pro`, `bbmusic/app/bbmusic.pro`, `hyperberry/app/hyperberry.pro`, `tengram/app/tengram.pro`
-- `hyperberry/.claude/skills/bb10-build-deploy/SKILL.md`, `hyperberry/.claude/skills/bb10-cxx20/SKILL.md`
+- `base-bb10/skills/bb10-build-deploy/SKILL.md`, `base-bb10/skills/bb10-cxx20/SKILL.md`
 - `tengram/docs/HANDOFF.md` (§4), `tengram/scripts/build-app.sh`, `tengram/scripts/build-deps.sh`, `tengram/scripts/build-tgs.sh`, `tengram/engine/build.sh`
 - `phoenix/scripts/build-app.sh`
 - `hyperberry/docs/plan/design.md` (§8), `hyperberry/docs/plan/pitfalls.md`

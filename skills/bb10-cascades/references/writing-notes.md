@@ -3,7 +3,7 @@
 Read when: you write `main.cpp`, swap the scene, animate a page, expose C++ to QML, or draw list rows in C++. Each entry has its source
 and an evidence tag. Tags as in **bb10-pitfalls**: [Q10], [Classic], [SDK], [app] (one of our four apps, or a third-party one),
 [untested]. "Seen on the phone" is written where the source says so. The apps: HyperBerry (WhatsApp, [hyperberry](https://github.com/zsavajji/hyperberry)), Tengram
-(Telegram, `../tengram`), BBMusic ([bbmusic](https://github.com/zsavajji/bbytmusic)), Phoenix (Reddit, `../phoenix`). Build-side facts (`.pro`, codecs, build
+(Telegram, [tengram](https://github.com/zsavajji/tengram)), BBMusic ([bbmusic](https://github.com/zsavajji/bbytmusic)), Phoenix (Reddit, [phoenix](https://github.com/zsavajji/phoenix)). Build-side facts (`.pro`, codecs, build
 scripts) are in `../../../docs/07-ui-build.md`; this file is about the code.
 
 ## 1. `main.cpp`
@@ -119,7 +119,7 @@ back what the pane had when it goes: `onTopChanged: nav.noPeek = !!nav.top && !!
 
 - A list item is as wide as its content; a child with `spaceQuota` stretches it. List items cannot see the page's ids: put what they need on the
   `ListView` and reach it through `ListItem.view`. [Q10] More in **bb10-pitfalls**.
-- **C++-drawn rows for speed (HyperBerry, kept by Tengram).** `bb::cascades::ListItemProvider` lets C++ build a row once (`createItem`) and refill it on
+- **C++-drawn rows for speed (Tengram `ChatRow` and `MessageCard`, started in HyperBerry; the pattern in full: [13](../../../docs/13-design-and-screens.md) section 6).** `bb::cascades::ListItemProvider` lets C++ build a row once (`createItem`) and refill it on
   each recycle (`updateItem`) with setters instead of QML bindings; QML keeps the `ListView` and sets its `listItemProvider`. Measured on the Q10
   (0.0.1.159, 2026-11-06): a real QML message card with its menu 46 ms, without the menu 27 ms; the same in C++ 2 ms; a light text card 5 ms in QML, 0.5 ms
   in C++. [Q10] The cost: every later look change is C++. Rules from the code:

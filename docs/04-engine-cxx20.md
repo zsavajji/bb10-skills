@@ -188,7 +188,7 @@ Still open in the toolchain's own notes: its new tests `exceptions-z` and `excep
 
 - **Static libraries first, in dependency order, then `-lsocket`.** Phoenix: `libcurl.a`, `libssl.a`, `libcrypto.a`, then `libz.a`, then `-lsocket` (comment in `phoenix/engine/CMakeLists.txt`: "Order matters: curl, ssl, crypto, then libz.a and -lsocket"). bbmusic: `libcurl.a`, `libwolfssl.a`, `libopus.a`, then `libz.a` and `-lsocket` (kept in a `bbm_syslibs` interface target linked last).
 - **`CURL_STATICLIB`** must be defined for code that includes `<curl/curl.h>` when libcurl is static (`target_compile_definitions(... CURL_STATICLIB)`).
-- **`-lbps` is not added by this driver** (XIAZY's `bb10-cc` adds it; `bb10-clang++` does not). Add `-lbps`, `-lscreen`, `-lEGL -lGLESv2` yourself if used (`bb10-cxx20/README.md` Limitations; `hyperberry/.claude/skills/bb10-cxx20/SKILL.md`).
+- **`-lbps` is not added by this driver** (XIAZY's `bb10-cc` adds it; `bb10-clang++` does not). Add `-lbps`, `-lscreen`, `-lEGL -lGLESv2` yourself if used (`bb10-cxx20/README.md` Limitations; `base-bb10/skills/bb10-cxx20/SKILL.md`).
 - System libraries the engines link, as used:
 
 | Library | Used for | Where |
@@ -240,7 +240,7 @@ $L/libtgcalls.a $L/libtg_owt.a $L/libssl.a $L/libcrypto.a $L/libopus.a -Wl,--end
 **Static vs shared C++ runtime.**
 
 - **Static, hermetic (the default)**: libc++/libc++abi/libunwind are linked in with hidden symbols, one private copy per executable or `.so`. Needed because BB10's libc/libm export a libgcc `_Unwind_*` that system libraries in the same process use. Do not let C++ objects or exceptions cross between two modules that each carry their own copy. All four engines use it.
-- **`-shared-libc++`**: for a program made of several `.so` that share C++ types, RTTI or exceptions. Ship **`libc++_shared.so.1`** (1.5 MB) in the `.bar` **under `native/lib`**, which is on the app's `LD_LIBRARY_PATH` via `<env var="LD_LIBRARY_PATH" value="app/native/lib:/usr/lib/qt4/lib"/>`. Ship shared libraries under their SONAME; symlinks are not carried (`hyperberry/.claude/skills/bb10-build-deploy/SKILL.md`). With `-shared-libc++`, `libc++_shared.so.1` must be the first library needed (`bb10-cxx20/tests/build.sh` checks it).
+- **`-shared-libc++`**: for a program made of several `.so` that share C++ types, RTTI or exceptions. Ship **`libc++_shared.so.1`** (1.5 MB) in the `.bar` **under `native/lib`**, which is on the app's `LD_LIBRARY_PATH` via `<env var="LD_LIBRARY_PATH" value="app/native/lib:/usr/lib/qt4/lib"/>`. Ship shared libraries under their SONAME; symlinks are not carried (`base-bb10/skills/bb10-build-deploy/SKILL.md`). With `-shared-libc++`, `libc++_shared.so.1` must be the first library needed (`bb10-cxx20/tests/build.sh` checks it).
 - Libraries of other languages' ABIs: a C API behind its own `.so` (`libtgs.so`, [03-toolchains.md](03-toolchains.md)).
 - Frame pointers are dropped when optimising (v19.1.7-4); `-fno-omit-frame-pointer` still wins (host ASan build uses it).
 - A C++ program that uses neither exceptions nor libc++ is about 36 KB larger, since the unwinder is always linked in (v19.1.7-4 notes).
@@ -265,7 +265,7 @@ missing=$(nm -D --undefined-only /src/build/hyperberryd | awk "\$1 == \"U\" { pr
 ```
 
   The C++ phoenix/bbmusic scripts have no such check; add this block when your engine links more system libraries.
-- A build that links is not a build that loads: "Builds, then 'symbol not found' on the phone" is the first thing to check (`hyperberry/.claude/skills/bb10-cxx20/SKILL.md` "When something breaks"). Also: exceptions that crash instead of being caught point at the `.ARM.exidx` link script (`share/bb10-exidx.ld` is added to every link; keep it if you write a custom link line) and at `R_ARM_TARGET2` (fixed in libc++abi).
+- A build that links is not a build that loads: "Builds, then 'symbol not found' on the phone" is the first thing to check (`base-bb10/skills/bb10-cxx20/SKILL.md` "When something breaks"). Also: exceptions that crash instead of being caught point at the `.ARM.exidx` link script (`share/bb10-exidx.ld` is added to every link; keep it if you write a custom link line) and at `R_ARM_TARGET2` (fixed in libc++abi).
 - **Trap for the phone-side run:** a copied binary runs only after `/proc/boot/pathtrust !<path>` on a file never executed before; a refused file stays refused, even a new file on the same inode. Always use the `!`; without it the whole filesystem is trusted. `bbmusic/scripts/push-phone.sh` and `hyperberry/scripts/push-engine.sh` do it: a fresh name per build (`<name>-<sha8>-<n>`), a refused copy parked in `denied/`. Name data files so they do not match `<program>-*` (the push script removes older copies by that pattern). Details: [10-phone-access-and-install.md](10-phone-access-and-install.md).
 
 ## 8. Engine conventions seen in the apps
@@ -295,4 +295,4 @@ Read from the three `main.cpp` files; confirm in them before copying.
 - `bbmusic/docs/plan/phase0.md`, `bbmusic/PLAN.md` (§3, §8, §13)
 - `tengram/engine/build.sh`, `tengram/engine/README.md`, `tengram/engine/main.cpp`, `tengram/engine/server.cpp`, `tengram/scripts/build-deps.sh`, `tengram/scripts/build-app.sh`, `tengram/docs/headless-cap.md`, `tengram/docs/HANDOFF.md`
 - `bb10-cxx20/README.md`, `bb10-cxx20/tests/build.sh`, `bb10-cxx20/cmake/bb10-cxx20.cmake`, `bb10-cxx20/out/release/NOTES.md`, `bb10-cxx20/out/release-v19.1.7-4/notes.md`, `bb10-cxx20/out/release-v19.1.7-5/notes.md`
-- `hyperberry/scripts/build-engine.sh`, `hyperberry/scripts/push-engine.sh`, `hyperberry/.claude/skills/bb10-cxx20/SKILL.md`, `hyperberry/.claude/skills/bb10-build-deploy/SKILL.md`
+- `hyperberry/scripts/build-engine.sh`, `hyperberry/scripts/push-engine.sh`, `base-bb10/skills/bb10-cxx20/SKILL.md`, `base-bb10/skills/bb10-build-deploy/SKILL.md`
