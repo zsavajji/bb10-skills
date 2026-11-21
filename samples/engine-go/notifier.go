@@ -2,11 +2,8 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
-	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -22,38 +19,7 @@ var (
 	hubRemoveFn  = udsRemove
 )
 
-// uiState is what the UI last said with ui.state, for both accounts: the chat on screen while
-// fullscreen doesn't alert.
-type uiState struct {
-	mu         sync.Mutex
-	fullscreen bool
-	open       string
-}
-
-func (u *uiState) set(fullscreen bool, open string) {
-	u.mu.Lock()
-	u.fullscreen, u.open = fullscreen, open
-	u.mu.Unlock()
-}
-
-func (u *uiState) seen(chat string) bool {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	return u.fullscreen && u.open == chat
-}
-
-// shown is whether the app is on screen full size, as the UI last said.
-func (u *uiState) shown() bool {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	return u.fullscreen
-}
-
-func (u *uiState) openChat() string {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	return u.open
-}
+// [...] app logic left out: uiState, what the UI last said about the chat on screen (seen, shown, openChat)
 
 // note is what a committed transaction wants done to one chat's Hub item. add: a live incoming
 // message, so the item may be created; otherwise only an existing item changes. alert: the Hub
@@ -118,38 +84,7 @@ func (t *storeTx) notifyIncoming(chat string) {
 	t.hubItem(chat, true, true)
 }
 
-// endBacklog is the end of the offline backlog: every chat that got a message in it reaches
-// the Hub now, as it stands.
-func (t *storeTx) endBacklog() {
-	chats := t.st.backlog
-	t.st.backlog = nil
-	for chat := range chats {
-		t.hubItem(chat, true, true)
-	}
-}
-
-// note keeps one note per chat in a batch: the last wins, but it may still create the item or
-// alert for what an earlier one in the batch asked. A gone note wins over those: apply checks
-// it first.
-func (t *storeTx) note(chat string, n note) {
-	if t.notes == nil {
-		t.notes = map[string]note{}
-	}
-	if old, ok := t.notes[chat]; ok {
-		n.add = n.add || old.add
-		n.alert = n.alert || old.alert && n.unread > 0
-	}
-	t.notes[chat] = n
-}
-
-// hubState is what the notifier remembers of the Hub, in hub.json: whether our account is
-// there, with which set of item actions, and which chats have an item. The Hub keeps its own
-// copy; this tells add from update.
-type hubState struct {
-	Account bool     `json:"account"`
-	Actions int      `json:"actions"`
-	Items   []string `json:"items"`
-}
+// [...] app logic left out: endBacklog, note (merges a chat's notes in a batch), hubState (hub.json)
 
 // hubActionSet is what an account is added with: 1 was Mark read/unread, 2 adds Delete, 3 the
 // white icon hub_account.png. The Hub fixes them when the account is added (it refuses an account
@@ -188,20 +123,7 @@ func newNotifier(dir string, log waLog.Logger) *Notifier {
 		// assets from /apps/<pkg>/public/.
 		assets: "/apps/" + filepath.Base(filepath.Dir(dir)) + "/public/",
 		open:   hubOpenFn, account: hubAccountFn, item: hubItemFn, remove: hubRemoveFn, items: map[string]bool{}}
-	if b, err := os.ReadFile(n.path); err == nil && json.Unmarshal(b, &n.prefs) == nil {
-		if n.prefs.Language != nil {
-			setLanguage(*n.prefs.Language)
-		}
-		// Before the session dials: the stored choice holds from the first lookup.
-		useCloudflareDNS(n.prefs.CloudflareDNS != nil && *n.prefs.CloudflareDNS)
-	}
-	var hs hubState
-	if b, err := os.ReadFile(n.state); err == nil && json.Unmarshal(b, &hs) == nil {
-		n.acct, n.actions = hs.Account, hs.Actions
-		for _, c := range hs.Items {
-			n.items[c] = true
-		}
-	}
+	// [...] app logic left out: reading prefs.json and hub.json
 	go n.run()
 	return n
 }
@@ -215,79 +137,7 @@ func (n *Notifier) run() {
 	}
 }
 
-// opened registers with the Hub on first use, and again on each use until that works. A
-// registration the Hub has never seen means it holds nothing of ours, whatever hub.json says.
-func (n *Notifier) opened() bool {
-	if n.ready {
-		return true
-	}
-	fresh, err := n.open(n.assets)
-	if err != nil {
-		n.log.Warnf("hub: register: %v", err)
-		return false
-	}
-	n.ready = true
-	if fresh {
-		n.acct, n.items = false, map[string]bool{}
-		n.save()
-	}
-	n.log.Infof("hub: registered, new to the Hub: %v", fresh)
-	return true
-}
-
-// save writes hub.json; tmp and rename, as prefs.json.
-func (n *Notifier) save() {
-	hs := hubState{n.acct, n.actions, make([]string, 0, len(n.items))}
-	for c := range n.items {
-		hs.Items = append(hs.Items, c)
-	}
-	sort.Strings(hs.Items)
-	b, _ := json.Marshal(hs)
-	if err := writeAtomic(n.state, b); err != nil {
-		n.log.Warnf("hub: save: %v", err)
-	}
-}
-
-// ensureAccount adds the account to the Hub unless it is there with the current actions.
-func (n *Notifier) ensureAccount() {
-	if !n.opened() {
-		return
-	}
-	// An account added by an older build has the old actions, and the Hub only takes them when the
-	// account is added. The cost: its items go with it, and each chat's comes back with its next
-	// message.
-	again := n.acct && n.actions < hubActionSet
-	if again {
-		n.dropAccount()
-	}
-	if n.acct {
-		return
-	}
-	if err := n.account(true); err != nil {
-		n.log.Warnf("hub: add account: %v", err)
-		return
-	}
-	n.acct, n.actions = true, hubActionSet
-	n.save()
-	if again {
-		n.log.Infof("hub: account added again for its new actions")
-	} else {
-		n.log.Infof("hub: account added")
-	}
-}
-
-// dropAccount removes the account, and its items with it.
-func (n *Notifier) dropAccount() {
-	if !n.opened() {
-		return
-	}
-	if err := n.account(false); err != nil {
-		n.log.Debugf("hub: remove account: %v", err) // normally nothing was there
-	}
-	n.acct, n.items = false, map[string]bool{}
-	n.save()
-	n.log.Infof("hub: account removed")
-}
+// [...] app logic left out: opened (registers with the Hub), save, ensureAccount, dropAccount
 
 // apply brings one chat's item to what the note says.
 func (n *Notifier) apply(chat string, nt note) {
@@ -345,31 +195,7 @@ func (n *Notifier) apply(chat string, nt note) {
 	}
 }
 
-// forget takes one chat's item out of the Hub, if there is one. A refusal only logs: the item
-// may be gone already, and it is forgotten either way.
-func (n *Notifier) forget(chat string) {
-	if !n.opened() || !n.items[chat] {
-		return
-	}
-	if err := n.remove(hubItemID(chat)); err != nil {
-		n.log.Warnf("hub: remove %s: %v", chat, err)
-	}
-	delete(n.items, chat)
-	n.save()
-	n.log.Infof("hub: remove %s", chat)
-}
-
-// removeItem is the Hub's Delete: the chat's item goes, the chat stays, and its next message
-// brings the item back.
-// The Hub asked, so the item is there even when hub.json lost track of it: known it is.
-func (n *Notifier) removeItem(chat string) {
-	n.queue(func() {
-		if n.opened() {
-			n.items[chat] = true
-			n.forget(chat)
-		}
-	}, "the removal")
-}
+// [...] app logic left out: forget, removeItem
 
 // queue puts f on the notifier's thread. ponytail: a full queue (64 behind a stuck UDS) drops
 // the work rather than block the writer; a dropped unlink leaves the account until the next one.
@@ -398,26 +224,4 @@ func (n *Notifier) send(notes map[string]note) {
 	}, "the notes")
 }
 
-// link makes sure the account is in the Hub: a new link's chats are in.
-func (n *Notifier) link() { n.queue(n.ensureAccount, "the link") }
-
-// unlink takes the account out: the chats are gone.
-func (n *Notifier) unlink() { n.queue(n.dropAccount, "the unlink") }
-
-func (n *Notifier) close() {
-	n.mu.Lock()
-	n.closed = true
-	close(n.in)
-	n.mu.Unlock()
-	<-n.done
-}
-
-// writeAtomic writes path through a temp file and a rename, so a crash leaves the old one.
-func writeAtomic(path string, b []byte) error {
-	tmp := path + ".tmp"
-	err := os.WriteFile(tmp, b, 0o600)
-	if err == nil {
-		err = os.Rename(tmp, path)
-	}
-	return err
-}
+// [...] app logic left out: link, unlink, close, writeAtomic

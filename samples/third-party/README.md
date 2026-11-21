@@ -2,6 +2,9 @@
 
 Building C/C++ libraries for BB10. Copied from tengram (5a65cdf); not built in this repo.
 
+Licence: the patches in `patches/` change TDLib (BSL-1.0), tg_owt (BSD-3-Clause) and tgcalls (LGPL-3.0); their
+context and removed lines stay under those licences, only the added lines are covered by this repo's MIT licence.
+
 | File | From | Kind | Shows |
 |---|---|---|---|
 | build-deps.sh, build-calls.sh, build-tgs.sh | `scripts/` | verbatim | Cross-building TDLib, calls libraries, rlottie |

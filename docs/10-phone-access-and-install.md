@@ -14,7 +14,7 @@ Code referenced here is in [../samples/](../samples/). Facts about the phones an
 | **Never restart a system process.** Restarting authman "broke every app launch until a reboot". Check how a system process's clients behave before touching it. | Tengram notes; [rlimit-patch](https://github.com/zsavajji/authman-rlimit)'s research notes (Route 1) |
 | **Ask before a reboot**: another agent may be using the phone. | HyperBerry notes |
 | Do not turn Development Mode on over root SSH (it needs the device password, which only the user has). | HyperBerry notes |
-| Installing: the user installs their own builds (Sachesi or DBBT). "Ask before installing by any route"; on 2026-10-31 an agent's install attempt ran long and the user said "stop it, I will install". Later, hyperberry builds went over the root route "when the user says 'install it'", and the phoenix and bbmusic scripts record that "the user allowed writes over ssh for tests on 2026-11-14". | HyperBerry notes; [samples/phone/install-phone.sh](../samples/phone/install-phone.sh); BBMusic notes ("Build, install, look": "installing test builds this way. No reboots, no system settings") |
+| Installing: the user installs their own builds (Sachesi or DBBT). "Ask before installing by any route"; on 2026-10-31 an agent's install attempt ran long and the user said "stop it, I will install". Later, hyperberry builds went over the root route "when the user says 'install it'". | HyperBerry notes; BBMusic notes ("Build, install, look": "installing test builds this way. No reboots, no system settings") |
 | Install only when it will not interrupt what the user is doing: an install closes the app and its engine ([11-testing-and-debugging.md](11-testing-and-debugging.md)). | Tengram notes |
 | Never log out a session the user needs, and keep tests on a real account in a safe place. | Tengram notes |
 
@@ -105,10 +105,10 @@ Ask first. The route is the phone's own installer, driven from root: the package
 ```sh
 #!/bin/sh
 # Installs a .bar on the Q10 over root ssh, through the system installer's PPS job object, and
-# prints what the installer answered. The route HyperBerry's notes describe
-# (HyperBerry notes, q10-install-bar): the package in /var/rootdata, mode 644; a job
+# prints what the installer answered. The route HyperBerry uses:
+# the package in /var/rootdata, mode 644; a job
 # object the installer may write its result into; three lines appended with echo (the phone has
-# no printf). The user allowed writes over ssh for tests on 2026-11-14.
+# no printf).
 #
 #   scripts/install-phone.sh build/phoenix.bar
 set -eu

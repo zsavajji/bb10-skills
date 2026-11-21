@@ -5,7 +5,7 @@
 #include <QProcess>
 #include <QString>
 
-// Installs the headless-mem addon (../rlimit-patch) as root, then ends the running engine so
+// Installs the headless-mem addon (github.com/zsavajji/authman-rlimit) as root, then ends the running engine so
 // that the UI's usual START brings it back under the new limit. The addon raises authman's _sys_headless_xlarge
 // from 30 MiB to 128 MiB. HyperBerry works at 30, with little room to spare, so this is an offer the user can decline. Ported from VoLTE Manager's
 // AddonSetup, reduced to this one action: the app runs the commands itself through AutoRoot v4's helper

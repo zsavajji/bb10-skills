@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -75,16 +73,7 @@ func newSession(container *sqlstore.Container, srv *Server, store *Store, log wa
 	srv.Handle("link.qr", s.handleQR)
 	srv.Handle("link.code", s.handleCode)
 	srv.Handle("link.logout", s.handleLogout)
-	registerSend(srv, s)
-	registerPresence(srv, s)
-	registerGroup(srv, s)
-	registerInvites(srv, s)
-	registerChannels(srv, s)
-	registerContacts(srv, s)
-	registerProfile(srv, s)
-	registerMedia(srv, s)
-	registerVoiceSend(srv, s)
-	srv.Handle("media.send", s.handleMediaSend)
+	// [...] app logic left out: handlers for send, presence, groups, invites, channels, contacts, profile, media and voice
 	if s.cli.Store.ID != nil {
 		// Not waited for: the UI gets its answers at once, whatever the network is doing.
 		cli := s.cli
@@ -144,10 +133,7 @@ func (s *Session) client() *whatsmeow.Client {
 	return s.cli
 }
 
-// openChat is the chat key on screen, or "" (step 5.1's notifier skips it).
-func (s *Session) openChat() string {
-	return s.store.ui.openChat()
-}
+// [...] app logic left out: openChat helper
 
 // hello is the link part of the hello reply.
 func (s *Session) hello() any {
@@ -191,180 +177,7 @@ func (s *Session) endSync() {
 	}
 }
 
-func (s *Session) close() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.stopQR != nil {
-		s.stopQR()
-	}
-	s.cli.Disconnect()
-}
-
-// startQR opens the login websocket with a QR channel, unless one is already running.
-// Call it with s.mu held.
-func (s *Session) startQR() error {
-	if s.stopQR != nil {
-		return nil
-	}
-	if s.cli.IsConnected() {
-		s.cli.Disconnect() // a QR channel has to be opened before connecting
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	ch, err := s.cli.GetQRChannel(ctx)
-	if err == nil {
-		err = s.cli.Connect()
-	}
-	if err != nil {
-		cancel()
-		return err
-	}
-	s.stopQR, s.qrSeen = cancel, make(chan struct{})
-	go s.readQR(s.cli, ch, s.qrSeen)
-	return nil
-}
-
-func (s *Session) readQR(cli *whatsmeow.Client, ch <-chan whatsmeow.QRChannelItem, seen chan struct{}) {
-	first := true
-	for item := range ch {
-		s.mu.Lock()
-		if cli != s.cli {
-			s.mu.Unlock()
-			return
-		}
-		switch item.Event {
-		case whatsmeow.QRChannelEventCode:
-			if first {
-				first = false
-				close(seen)
-			}
-			if s.link != linkCode {
-				s.qr = item.Code
-				s.setLink(linkQR)
-			}
-		case "success":
-			s.setLink(linkLinking)
-		default: // timeout, or an error: the login socket is gone, so start over
-			s.log.Warnf("QR channel ended: %s %v", item.Event, item.Error)
-			s.stopQR, s.qr, s.code = nil, "", ""
-			if s.link != linkLinking && s.link != linkReady {
-				s.setLink(linkUnlinked)
-			}
-		}
-		s.mu.Unlock()
-	}
-}
-
-func (s *Session) handleQR(json.RawMessage) (any, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.link == linkReady || s.link == linkLinking {
-		return nil, &Error{"linked", "this device is already linked"}
-	}
-	if err := s.startQR(); err != nil {
-		return nil, err
-	}
-	if s.qr != "" {
-		return map[string]string{"qr": s.qr}, nil
-	}
-	return nil, nil // the codes come as link events
-}
-
-// pairDigits is link.code's phone number as PairPhone takes it: digits only, with the country
-// code. "0039…" is how much of Europe dials "+39…". The rest is PairPhone's own check, done
-// first so a bad number doesn't cost the running QR code.
-func pairDigits(phone string) (string, error) {
-	digits := strings.Map(func(c rune) rune {
-		if c >= '0' && c <= '9' {
-			return c
-		}
-		return -1
-	}, phone)
-	digits = strings.TrimPrefix(digits, "00")
-	if len(digits) <= 6 || digits[0] == '0' {
-		return "", &Error{"bad_phone", "the phone number needs its country code"}
-	}
-	return digits, nil
-}
-
-func (s *Session) handleCode(req json.RawMessage) (any, error) {
-	var r struct{ Phone string }
-	json.Unmarshal(req, &r)
-	digits, err := pairDigits(r.Phone)
-	if err != nil {
-		return nil, err
-	}
-	s.mu.Lock()
-	if s.link == linkReady || s.link == linkLinking {
-		s.mu.Unlock()
-		return nil, &Error{"linked", "this device is already linked"}
-	}
-	s.restartLogin()
-	if err := s.startQR(); err != nil {
-		s.mu.Unlock()
-		return nil, err
-	}
-	cli, seen := s.cli, s.qrSeen
-	s.mu.Unlock()
-
-	// PairPhone needs the login websocket up, which the first QR code shows.
-	select {
-	case <-seen:
-	case <-time.After(20 * time.Second):
-		return nil, &Error{"offline", "WhatsApp didn't answer; check the connection and try again"}
-	}
-	// The server accepts only "Browser (OS)" names it knows; Windows, as identity's.
-	code, err := cli.PairPhone(context.Background(), digits, true, whatsmeow.PairClientChrome, "Chrome (Windows)")
-	if err != nil {
-		return nil, err
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.code = code
-	s.setLink(linkCode)
-	return map[string]string{"code": code}, nil
-}
-
-// restartLogin drops a running login socket, so a pairing code gets the socket's whole life:
-// it closes when the QR codes run out, 160 s after the first, and the linking page starts them
-// as it opens. The new socket is on a fresh client, because a cancelled QR channel disconnects
-// its client later, from its own goroutine. Going through unlinked lets a page that waits for
-// "code" see the new one. Call it with s.mu held, while not linked.
-func (s *Session) restartLogin() {
-	if s.stopQR == nil {
-		return
-	}
-	s.stopQR()
-	s.cli.Disconnect()
-	s.cli = s.newClient(s.container.NewDevice())
-	s.stopQR, s.qr, s.code, s.conn = nil, "", "", "offline"
-	s.setLink(linkUnlinked)
-}
-
-func (s *Session) handleLogout(json.RawMessage) (any, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.cli.Store.ID != nil {
-		if err := s.cli.Logout(context.Background()); err != nil {
-			return nil, err
-		}
-	}
-	return nil, s.reset()
-}
-
-// reset drops the client and starts over with a fresh device. Call it with s.mu held.
-func (s *Session) reset() error {
-	if s.stopQR != nil {
-		s.stopQR()
-	}
-	s.cli.Disconnect()
-	s.calls.drop()
-	s.store.clear()
-	s.syncing = false
-	s.cli = s.newClient(s.container.NewDevice())
-	s.stopQR, s.qr, s.code, s.conn = nil, "", "", "offline"
-	s.setLink(linkUnlinked)
-	return nil
-}
+// [...] app logic left out: close, QR and pairing-code login, logout, reset
 
 func (s *Session) onEvent(cli *whatsmeow.Client, evt any) {
 	s.mu.Lock()
@@ -388,34 +201,13 @@ func (s *Session) onEvent(cli *whatsmeow.Client, evt any) {
 				s.stopQR = nil
 			}
 			s.setLink(linkReady)
-			// The app's focus again, off this goroutine: a send waits on the connection.
-			go func() {
-				if err := sendPresence(cli, s.store.ui.shown()); err != nil {
-					s.log.Warnf("presence after connecting: %v", err)
-				}
-			}()
+			// [...] app logic left out: presence sent once connected
 		}
 		s.srv.Emit("conn", map[string]any{"state": s.conn})
 		s.photos.connected()
-	case *events.Picture:
-		s.photos.changed(cli, e.JID)
+	// [...] app logic left out: picture changes (case *events.Picture)
 	case *events.Disconnected:
-		// A call's media runs on its own relay and may outlive a short drop, which hypermeow mends
-		// by itself; only a connection still down after callDropGrace ends the call. One whose
-		// media meowcaller is reconnecting isn't ended here: meowcaller ends it itself if the
-		// link can't come back within 30 s.
-		var grace func()
-		grace = func() {
-			if cli.IsConnected() {
-				return
-			}
-			if s.calls.reconnecting() {
-				time.AfterFunc(callDropGrace, grace)
-				return
-			}
-			s.calls.drop()
-		}
-		time.AfterFunc(callDropGrace, grace)
+		// [...] app logic left out: the grace period before a dropped connection ends a call
 		s.conn = "connecting" // hypermeow reconnects by itself
 		s.srv.Emit("conn", map[string]any{"state": s.conn})
 	case *events.StreamReplaced:

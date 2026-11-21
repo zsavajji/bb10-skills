@@ -1,9 +1,9 @@
 #!/bin/sh
 # Installs a .bar on the Q10 over root ssh, through the system installer's PPS job object, and
-# prints what the installer answered. The route HyperBerry's notes describe
-# (../hyperberry/docs/memory/q10-install-bar.md): the package in /var/rootdata, mode 644; a job
+# prints what the installer answered. The route HyperBerry uses:
+# the package in /var/rootdata, mode 644; a job
 # object the installer may write its result into; three lines appended with echo (the phone has
-# no printf). The user allowed writes over ssh for tests on 2026-11-14.
+# no printf).
 #
 #   scripts/install-phone.sh build/phoenix.bar
 set -eu

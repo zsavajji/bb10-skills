@@ -138,7 +138,7 @@ Keep the engine's peak low anyway: "Without the patch the cap is 30 MiB ... The 
 ## 4. Start at boot
 
 - An **unsigned app cannot run until root is up**, some time after boot (about 4 minutes in), and the boot event also **fires on every install**; so the descriptors say "Not at boot" for the service entry itself (comments in the hyperberry, tengram and bbmusic descriptors; user, 2026-10-29).
-- What the sources say works: a recurring timer registered by the UI on the service's headless target, filtered on `bb.action.system.TIMER_FIRED` (descriptor: mime `*`, `uris` `data://local`). From HyperBerry's [`Settings.cpp`](../samples/cookbook/Settings-hyperberry.cpp) (tengram's is the same with its own ids; its excerpt: [samples/cookbook/Settings-excerpts.cpp](../samples/cookbook/Settings-excerpts.cpp)):
+- What the sources say works: a recurring timer registered by the UI on the service's headless target, filtered on `bb.action.system.TIMER_FIRED` ([descriptor](../samples/descriptor/bar-descriptor-hyperberry.xml): mime `*`, `uris` `data://local`). From HyperBerry's [`Settings.cpp`](../samples/cookbook/Settings-hyperberry.cpp) (tengram's is the same with its own ids; its excerpt: [samples/cookbook/Settings-excerpts.cpp](../samples/cookbook/Settings-excerpts.cpp)):
 
 ```cpp
 bb::system::InvokeRecurrenceRule rule(bb::system::InvokeRecurrenceRuleFrequency::Minutely,
@@ -185,7 +185,7 @@ What it costs: the engine dies with the UI. Nothing runs, notifies or plays afte
 ## Where sources disagree
 
 - Arguments: HyperBerry notes 0.4 says "A headless launch gets no arguments"; BBMusic notes ("argv ... invoke://localhost"), [samples/engine-cxx20/main-headless.cpp](../samples/engine-cxx20/main-headless.cpp) and Tengram notes (2026-11) show it does. Newer wins; Tengram notes says "no arguments we choose".
-- Boot filter: `STARTED` (hyperberry phase 0) against `TIMER_FIRED` (descriptors, [`Settings.cpp`](../samples/cookbook/Settings-hyperberry.cpp), phase 8). `TIMER_FIRED` wins.
+- Boot filter: `STARTED` (hyperberry phase 0) against `TIMER_FIRED` ([descriptors](../samples/descriptor/bar-descriptor-hyperberry.xml), [`Settings.cpp`](../samples/cookbook/Settings-hyperberry.cpp), phase 8). `TIMER_FIRED` wins.
 - Tengram notes runs the engine as `$E data`; [samples/engine-cxx20/main-tdlib-service.cpp](../samples/engine-cxx20/main-tdlib-service.cpp) takes `--data <dir>` (a bare argument is logged and ignored). `main.cpp` wins.
 - Where the memory patch is offered: a first-use dialog (Tengram notes, 2026-11-17) against Settings only (HyperBerry notes, 2026-11-20). The newer entry wins.
 - The overlay's controls with the app closed: no controls when held by the UI's `NowPlayingConnection` (gate round 2), controls reach a plain process (0.5 settled). Both are true; the second is why now-playing moved into the engine.
