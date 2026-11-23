@@ -3,7 +3,7 @@
 Paste this file into an agent's prompt before it works on a BB10 app. It is the short form of this repo
 (`base-bb10`); each section names the doc with the detail and the samples. Everything here comes from four
 working apps beside this repo: [hyperberry](https://github.com/zsavajji/hyperberry) (WhatsApp), [tengram](https://github.com/zsavajji/tengram) (Telegram), [bbmusic](https://github.com/zsavajji/bbytmusic) (YouTube Music) and
-[phoenix](https://github.com/zsavajji/phoenix) (Reddit). This repo is self-contained: the code is in `samples/` (see the last section), and no app repo is needed.
+[phoenix](https://github.com/zsavajji/phoenix-reddit) (Reddit). This repo is self-contained: the code is in `samples/` (see the last section), and no app repo is needed.
 
 ## 1. What never changes
 

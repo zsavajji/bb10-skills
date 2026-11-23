@@ -1,14 +1,14 @@
 # base-bb10
 
 What it takes to build a native BlackBerry 10 app in 2026, written for a coding agent that starts a new one.
-Everything here was learned building four apps. This repo is self-contained: the code the docs refer to is in [samples/](samples/), and no app repo is needed:
+Everything here was learned building four apps. This repo is self-contained: the code the docs refer to is in [samples/](samples/), and no app repo is needed.
 
 | App | What | UI | Engine | Engine runs as |
 |---|---|---|---|---|
 | [hyperberry](https://github.com/zsavajji/hyperberry) | WhatsApp client | Cascades, gcc 4.8.3 | Go (go-qnx) | headless service |
 | [tengram](https://github.com/zsavajji/tengram) | Telegram client | Cascades, gcc 4.8.3 (fork of HyperBerry's UI) | C++20 over TDLib | headless service |
 | [bbmusic](https://github.com/zsavajji/bbytmusic) | YouTube Music client | Cascades, gcc 4.6.3 | C++20, libcurl + wolfSSL | headless service |
-| [phoenix](https://github.com/zsavajji/phoenix) | Reddit client | Cascades, gcc 4.6.3 | C++20, libcurl + OpenSSL | plain child of the UI |
+| [phoenix](https://github.com/zsavajji/phoenix-reddit) | Reddit client | Cascades, gcc 4.6.3 | C++20, libcurl + OpenSSL | plain child of the UI |
 
 The toolchain is [bb10-cxx20](https://github.com/zsavajji/bb10-cxx20); the headless memory patch is [rlimit-patch](https://github.com/zsavajji/authman-rlimit).
 
