@@ -2,7 +2,7 @@
 
 Read this when: the app takes seconds to show its first page, you are choosing between a plain executable and a shared object for the UI, or you are switching an existing UI from `Qnx/Elf` to `Qnx/Cascades`.
 
-Code referenced here is in [../samples/launcher/](../samples/launcher/). The plain-executable build this replaces: [07-ui-build.md](07-ui-build.md) sections 1 and 2. The descriptor around it: [08-packaging.md](08-packaging.md). Everything here was measured on a Classic (SQC100-1, 10.3.3.3216) with Tengram on 2026-11-24, with an unsigned package installed by the root route.
+Code referenced here is in [../samples/launcher/](../samples/launcher/). The plain-executable build this replaces: [07-ui-build.md](07-ui-build.md) sections 1 and 2. The descriptor around it: [08-packaging.md](08-packaging.md). Everything here was measured on a Classic (SQC100-1, 10.3.3.3216) with Tengram on 2026-11-24, with an unsigned package installed by the root route. HyperBerry got the same three changes the same day and runs the same way (the user's check; its timings were not read).
 
 ## 1. What it is
 
@@ -113,7 +113,7 @@ Q_DECL_EXPORT int main(int argc, char **argv)
 | `applicationDirPath()` | `/bin`; use `QDir::currentPath() + "/app/native/..."` | follows from the above; the app's translations path was changed for it |
 | `LD_LIBRARY_PATH` | the descriptor's value with `/usr/lib/appserv` appended; a library in `app/native/lib` loads | seen: `pidin env`, and `libtgs.so` in `pidin libs` |
 | `HOME`, `TMPDIR` | the sandbox's `data` and `tmp`, as before | seen: `pidin env` |
-| `CASCADES_THEME` | not listed by `pidin env` for the forked process. Whether the descriptor's theme and primary colour still apply was not checked by eye | open |
+| `CASCADES_THEME` | not listed by `pidin env` for the forked process, yet the descriptor's theme and primary colour apply | the user saw both apps' dark theme and brand colour (Tengram and HyperBerry, 2026-11-24) |
 | Process start time | the fork, so `sinceLaunch()` still counts from the launch | the log's 139 to 176 ms |
 | `slog2` buffer | the app's own `slog2_register` still works | seen: `slog2info -b tengram` has the new process's lines |
 | Signing | none needed: an unsigned package installed by the root route starts this way | verified on the Classic |

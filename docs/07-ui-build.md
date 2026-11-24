@@ -8,7 +8,7 @@ Source priority: where `.pro` files, build scripts and 2026-11 notes disagree wi
 
 ## 1. The `.pro` file of a plain-executable app
 
-The UI is a plain executable, the bar's `Qnx/Elf` entry point. That is the simplest build, and it costs about 3 s at every start: [14-cascades-launcher.md](14-cascades-launcher.md) has the three changes that start the same UI through BB10's Cascades launcher instead (Tengram, verified on the Classic 2026-11-24; HyperBerry builds the same way, not yet tried on a phone). Minimal template: [samples/ui/app.pro](../samples/ui/app.pro); bbmusic's [`bbmusic.pro`](../samples/ui/bbmusic.pro) is the same with `network`.
+The UI is a plain executable, the bar's `Qnx/Elf` entry point. That is the simplest build, and it costs about 3 s at every start: [14-cascades-launcher.md](14-cascades-launcher.md) has the three changes that start the same UI through BB10's Cascades launcher instead (Tengram and HyperBerry, both running that way since 2026-11-24). Minimal template: [samples/ui/app.pro](../samples/ui/app.pro); bbmusic's [`bbmusic.pro`](../samples/ui/bbmusic.pro) is the same with `network`.
 
 ```
 TEMPLATE = app
