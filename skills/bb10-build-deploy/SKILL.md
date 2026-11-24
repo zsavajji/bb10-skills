@@ -68,6 +68,8 @@ docker run --rm -v "$ROOT:/src" -w /src yamsergey/bb10-ndk:0.6 bash -c '
   expects an executable then fails with `Invalid asset path`. Without it (`TEMPLATE = app` + the libs) the output is a plain
   executable wherever `DESTDIR` says. No Momentics `config.pri`: a self-contained `.pro` builds fine. `main` is `Q_DECL_EXPORT`.
   The `.pro` of a plain-executable app and its optional libs: [07](../../docs/07-ui-build.md) section 1.
+  A `.so` started through the launcher (`TEMPLATE = lib`, `CONFIG += plugin`, `Qnx/Cascades`) shows its first page about 3 s
+  sooner: [14](../../docs/14-cascades-launcher.md).
 - Third-party **C** libraries can be built with the NDK's GCC and linked statically into the UI (`CC=ntoarmv7-gcc AR=ntoarmv7-ar
   RANLIB=ntoarmv7-ranlib ./Configure gcc no-shared no-tests no-asm no-ui-console`). `-Wc,` passes a flag through qcc; `DEFINES`
   reach C++ only, so C defines go through `-Wc,"-D..."` too. Modern **C++** libraries need bb10-cxx20 and a process or C boundary.

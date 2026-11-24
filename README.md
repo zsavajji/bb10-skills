@@ -49,6 +49,7 @@ Details and sources: [docs/01-target-and-rules.md](docs/01-target-and-rules.md).
 | [11-testing-and-debugging.md](docs/11-testing-and-debugging.md) | Testing off and on the phone, reading logs, working out why an app quits |
 | [12-video-and-audio.md](docs/12-video-and-audio.md) | Playing video, decoding or encoding H.264 in hardware (the OpenMAX AL research and the OpenMAX IL route that works), the camera, drawing frames, PCM audio in and out |
 | [13-design-and-screens.md](docs/13-design-and-screens.md) | Designing a page: design units (du) and their size per model, square and tall screens, the Passport's larger screen, OLED and LCD panels and the theme, icons and splash screens, how the four apps lay out for every phone |
+| [14-cascades-launcher.md](docs/14-cascades-launcher.md) | The first page takes seconds to show: starting the UI through BB10's Cascades launcher (`Qnx/Cascades`, a `.so`) instead of as a plain executable, what it saves and what changes |
 
 ## The skills
 
@@ -78,6 +79,7 @@ build pipeline. Link or copy them into `~/.claude/skills/` or a project's `.clau
 | [third-party](samples/third-party/) | Scripts and patches that build libraries (TDLib, libwebp, SQLCipher, ...) |
 | [ui](samples/ui/) | `.pro` files, `main.cpp`, logging, build and icon scripts |
 | [descriptor](samples/descriptor/) | `bar-descriptor.xml` for a child engine, a headless engine and a full app |
+| [launcher](samples/launcher/) | The UI as a shared object started through the Cascades launcher: `.pro`, descriptor, `main.cpp` |
 | [cookbook](samples/cookbook/) | Cascades C++ and QML excerpts: invoke, share, SQLite, settings, cover |
 | [headless](samples/headless/) | The memory-patch installer: `MemoryPatch` and the root helper |
 | [phone](samples/phone/) | Push, install and test-driver scripts for the phone |

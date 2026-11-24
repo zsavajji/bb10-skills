@@ -1,6 +1,8 @@
 # A plain executable as the entry point (the bar's Qnx/Elf entry). The IDE's
 # cascades10 config instead builds a release as a .so for the Cascades
-# launcher (entryPointType Qnx/Cascades); either works, this one is simpler.
+# launcher (entryPointType Qnx/Cascades); either works, this one is simpler,
+# and about 3 s slower at every start: docs/14-cascades-launcher.md has the
+# three changes (TEMPLATE = lib, the descriptor, no applicationDirPath()).
 TEMPLATE = app
 TARGET = hello
 CONFIG += qt warn_on release

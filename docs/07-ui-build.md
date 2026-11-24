@@ -8,7 +8,7 @@ Source priority: where `.pro` files, build scripts and 2026-11 notes disagree wi
 
 ## 1. The `.pro` file of a plain-executable app
 
-The UI is a plain executable, the bar's `Qnx/Elf` entry point. Minimal template: [samples/ui/app.pro](../samples/ui/app.pro); bbmusic's [`bbmusic.pro`](../samples/ui/bbmusic.pro) is the same with `network`.
+The UI is a plain executable, the bar's `Qnx/Elf` entry point. That is the simplest build, and it costs about 3 s at every start: [14-cascades-launcher.md](14-cascades-launcher.md) has the three changes that start the same UI through BB10's Cascades launcher instead (Tengram, verified on the Classic 2026-11-24; HyperBerry builds the same way, not yet tried on a phone). Minimal template: [samples/ui/app.pro](../samples/ui/app.pro); bbmusic's [`bbmusic.pro`](../samples/ui/bbmusic.pro) is the same with `network`.
 
 ```
 TEMPLATE = app
@@ -93,6 +93,8 @@ lupdate_only {
 `CONFIG += cascades10` is the Momentics default (and a third-party starter app's). It builds a release as `o.le-v7/lib<name>.so`, for `<entryPointType>Qnx/Cascades</entryPointType>`; the descriptor must then point at that `.so` and `main` needs `Q_DECL_EXPORT`. "A descriptor that expects an executable fails with `Invalid asset path` (checked by building that starter app)." Without `cascades10` (`TEMPLATE = app` plus the libs) the output is a plain executable wherever `DESTDIR` says ([skills/bb10-build-deploy/SKILL.md](../skills/bb10-build-deploy/SKILL.md)).
 
 So: no `cascades10`, no Momentics `config.pri` (a generated file with source globbing and per-config `DESTDIR`; "a self-contained `.pro` builds fine with plain qmake"), and `Q_DECL_EXPORT int main(int argc, char **argv)` as in [samples/ui/main.cpp](../samples/ui/main.cpp). The template comment says the same ([skills/bb10-cascades/template/hello.pro](../skills/bb10-cascades/template/hello.pro)): either works, the plain executable is simpler.
+
+"Either works" was written before the start was measured. The `Qnx/Cascades` entry point needs neither `cascades10` nor `config.pri` (`TEMPLATE = lib` and `CONFIG += plugin` in the same self-contained `.pro`), and it brought Tengram's `main()` from 1.5 s after the tap to 0.15 s and its `Application` from 3.4 s to 0.3 s: [14-cascades-launcher.md](14-cascades-launcher.md).
 
 ## 3. The build command
 

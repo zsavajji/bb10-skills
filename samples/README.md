@@ -22,6 +22,7 @@ stands on its own: nothing here needs an app repo checked out.
 | [third-party/](third-party/) | fetch and build scripts for TDLib, calls, rlottie as a C-API `.so`, libwebp, qrcodegen, the SQLCipher driver, the emoji font; the TDLib patches | [06](../docs/06-third-party-libs.md) |
 | [ui/](ui/) | the Cascades UI: `.pro` files (gcc 4.6.3 and 4.8.3), `main.cpp`, the UI log, the build script with its QML checks, icon generators | [07](../docs/07-ui-build.md) |
 | [descriptor/](descriptor/) | `bar-descriptor.xml`: engine as a child, engine as a headless service, the full set (Hub, share, timer, `.so`, helper) | [08](../docs/08-packaging.md) |
+| [launcher/](launcher/) | the UI as a shared object started through BB10's Cascades launcher (`Qnx/Cascades`): the `.pro`, the descriptor, the lines of `main.cpp` it needs | [14](../docs/14-cascades-launcher.md) |
 | [cookbook/](cookbook/) | Cascades API recipes: share, query targets, clipboard, lifecycle, theme, SQLite, Active Frame, a card | [BB10_CONTEXT](../BB10_CONTEXT.md) |
 | [headless/](headless/) | installing the memory-cap addon from the app: `MemoryPatch` and its root helper | [09](../docs/09-headless-service.md) |
 | [phone/](phone/) | scripts for the phone: push a test binary, install a `.bar`, measure, drive the engine | [10](../docs/10-phone-access-and-install.md), [11](../docs/11-testing-and-debugging.md) |

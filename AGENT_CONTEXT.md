@@ -122,7 +122,9 @@ Detail: `docs/04-engine-cxx20.md`, `docs/05-engine-go.md`, `docs/06-third-party-
 
 A plain executable from a self-contained `.pro`: `TEMPLATE = app`, `CONFIG += qt warn_on release`,
 `QT += declarative`, `LIBS += -lbbcascades -lbbdata -lbbsystem -lbb -lbps`. No `CONFIG += cascades10`, no
-Momentics `config.pri`. In the NDK image:
+Momentics `config.pri`. **A plain executable costs about 3 s at every start** (it loads about 100 libraries and
+builds Cascades from nothing; Classic, 2026-11-24): build the UI as a `.so` with a `Qnx/Cascades` entry point
+instead (`TEMPLATE = lib`, `CONFIG += plugin`, `-Wl,-Bsymbolic`; no `applicationDirPath()`), `docs/14-cascades-launcher.md`. In the NDK image:
 
 ```sh
 source /root/bbndk/bbndk-env_10_3_1_995.sh

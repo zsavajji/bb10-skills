@@ -81,7 +81,8 @@ return Application::exec();
 ```
 
 `.pro`: `TEMPLATE = app` (plain executable entry; the IDE's `cascades10` config instead makes a
-`.so` for `<entryPointType>Qnx/Cascades</entryPointType>`), `QT += declarative network`,
+`.so` for `<entryPointType>Qnx/Cascades</entryPointType>`; that entry starts about 3 s sooner, see
+`docs/14-cascades-launcher.md`), `QT += declarative network`,
 `LIBS += -lbbcascades -lbbdata -lbbsystem -lbb -lbbutility` (+ `-lbps -lscreen` when used). The apps' own `main.cpp`
 add UTF-8 codecs, a log that `qDebug` goes to, context properties on the root context and a parented root:
 **read `references/writing-notes.md` before writing `main.cpp`** (and for page transitions, scene swaps, C++-drawn list rows).
