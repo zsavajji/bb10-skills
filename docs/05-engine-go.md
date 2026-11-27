@@ -8,21 +8,21 @@ Choosing between Go and C++20 is in [02-architecture.md](02-architecture.md) §6
 
 | Item | Value | Source |
 |---|---|---|
-| Go | **go-qnx 1.27.2** (XIAZY's fork), `GOOS=qnx GOARCH=arm GOARM=7`. Its README reports `go test -short std` on a BB10 phone: 377 packages, 0 failures | HyperBerry's plan §2 |
+| Go | **go-qnx 1.27.4** (the user's fork [zsavajji/go-qnx](https://github.com/zsavajji/go-qnx) of XIAZY's), `GOOS=qnx GOARCH=arm GOARM=7` | HyperBerry's plan §2 |
 | Image | go-qnx's `/usr/local/go` copied into the bb10-cxx20 image | [samples/docker/Dockerfile.go](../samples/docker/Dockerfile.go) |
-| Pin | go-qnx image **by digest**: `ghcr.io/xiazy/go-qnx:1.27.2@sha256:1915ce0568acda8de04c82be016a47fa267858aef4b7c7b77402363770c04669` | same |
-| Why the digest | "go-qnx's README says to pin its image by digest: its go1.27.2 has Google's version string but not Google's bytes" | Dockerfile comment; HyperBerry's design notes §8 |
+| Pin | go-qnx image **by digest**: `ghcr.io/zsavajji/go-qnx:1.27.4@sha256:19f06aa6606912a3fd89c1e4eca226292a9fb1071ec57d2d09b5b3ee8529b094` | same |
+| Why the digest | "go-qnx's README says to pin its image by digest: its go1.27.4 has Google's version string but not Google's bytes" | Dockerfile comment; HyperBerry's design notes §8 |
 | cgo | supported on qnx/arm with an external C compiler: **`CC=bb10-clang`** (from bb10-cxx20), `CGO_ENABLED=1` | HyperBerry's plan §2 |
 | `GOTOOLCHAIN` | `local` (set in the Dockerfile with `PATH=/usr/local/go/bin:$PATH`) | [samples/docker/Dockerfile.go](../samples/docker/Dockerfile.go) |
 | `golang.org/x/sys` | replaced by XIAZY's fork in `engine/go.mod` | [samples/engine-go/go.mod](../samples/engine-go/go.mod) |
 | Go cache | `~/.cache/hyperberry-go` on the Mac, mounted at `/cache`, "apart from stock Go's (go-qnx README)" | [samples/engine-go/build-engine.sh](../samples/engine-go/build-engine.sh) |
-| Base image tag | `bb10-cxx20:19.1.7-5-build` | [samples/docker/Dockerfile.go](../samples/docker/Dockerfile.go) |
+| Base image tag | `bb10-cxx20:19.1.7-6-build` | [samples/docker/Dockerfile.go](../samples/docker/Dockerfile.go) |
 
 The Dockerfile, in short:
 
 ```dockerfile
-FROM ghcr.io/xiazy/go-qnx:1.27.2@sha256:1915ce0568acda8de04c82be016a47fa267858aef4b7c7b77402363770c04669 AS go
-FROM bb10-cxx20:19.1.7-5-build
+FROM ghcr.io/zsavajji/go-qnx:1.27.4@sha256:19f06aa6606912a3fd89c1e4eca226292a9fb1071ec57d2d09b5b3ee8529b094 AS go
+FROM bb10-cxx20:19.1.7-6-build
 COPY --from=go /usr/local/go /usr/local/go
 ENV PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=local
 ```
@@ -42,6 +42,16 @@ replace golang.org/x/sys => github.com/XIAZY/go-sys-qnx v0.0.0-20261016215730-63
 Libraries pinned there include `github.com/mattn/go-sqlite3 v1.14.52`, `github.com/polymorfa/hypermeow v0.0.0-20261112193137-7ced3258db46` (a `main` pseudo-version "because its README retracts every tag": HyperBerry's plan §2; it needs Go >= 1.26), `github.com/purpshell/meowcaller` (calls) and `golang.org/x/crypto/x509roots/fallback`.
 
 Go code rule: **std plus the protocol library only; cgo only for SQLite, BPS, UDS and libopus** (HyperBerry's design notes §6; `PLAN.md` §12).
+
+### Moving from go-qnx 1.27.2 to 1.27.4 (HyperBerry, 2026-11-27)
+
+- **`syscall.RLIM_INFINITY` is now unsigned** (`1<<64-3`, QNX's `(rlim_t)-3`); Linux's is -1. `int64(syscall.RLIM_INFINITY)`
+  no longer compiles for qnx. For code built for both (host tests): `uint64(syscall.RLIM_INFINITY & (1<<64 - 1))`.
+  Host tests don't catch it: only the BB10 build does.
+- go-qnx's README ("Performance on BlackBerry 10", measured on a Q10, not by us): `time.Now` 326 ns from 2115;
+  channel and scheduler work 11-15% faster; a heap mapped lazily (1 MB live: 3.2 MB of data from 5.7 MB); an
+  allocation-heavy program about 30% faster; CPU profiles see through libc. Network speed is unchanged (io-pkt).
+- HyperBerry 1.0.6.424 with it was built and installed on a Q20; memory and speed were not compared.
 
 ## 2. `scripts/build-engine.sh`, verbatim
 

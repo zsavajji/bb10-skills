@@ -15,7 +15,7 @@ Every phone is rooted, nothing is signed, 10.3.3 is the last OS: [01](../../docs
 | Image | Has | Use for |
 |---|---|---|
 | `yamsergey/bb10-ndk:0.6` | Native SDK 10.3.1.995: `qcc`, `qmake` (Qt 4.8 + Cascades), `lupdate`, `lrelease`, `blackberry-nativepackager`, `blackberry-deploy`. **linux/386**: on Apple Silicon it runs emulated (Docker warns about the platform) | the Cascades UI, small C shims |
-| `bb10-cxx20:19.1.7-5` (pin a release tag, not `latest`; see bb10-cxx20) | clang 19, libc++ 19, armnto binutils, SDK sysroot, `bb10-clang++` | engines, ported libraries (C++20) |
+| `bb10-cxx20:19.1.7-6` (pin a release tag, not `latest`; see bb10-cxx20) | clang 19, libc++ 19, armnto binutils, SDK sysroot, `bb10-clang++` | engines, ported libraries (C++20) |
 
 `qcc -V` in the NDK image lists exactly **GCC 4.6.3 and 4.8.3** (no 4.8.4), each with the targets
 `gcc_ntoarmv7le`, `_cpp` (Dinkumware C++ library, what Qt and Cascades use), `_cpp-ne` (no exceptions), `_gpp` (GNU libstdc++).
@@ -64,6 +64,9 @@ docker run --rm -v "$ROOT:/src" -w /src yamsergey/bb10-ndk:0.6 bash -c '
 - **`-buildIdFile build/app-buildid.txt`** gives every package the next build id: do not bump `<buildId>` by hand. Create the file
   with `1` when it is missing. Compile only (no id spent): the same `qmake` and `make` lines, about 30 s; two builds at once need two build folders.
 - The bb10-cascades template has a one-file `build.sh`.
+- **Speed (measured on a Q20, qcc 4.8.3):** add `-mfpu=neon` to C and C++ flags (libwebp 1.3-2.4x) and remove
+  `-fstack-protector-all`, keeping `-fstack-protector` (6-14% more). NEON intrinsics turned a pixel loop 2-3.5x
+  faster. `-flto`, PGO and building with clang gained 0-3%: skip them.
 - **`CONFIG += cascades10`** (the Momentics default) builds a release as `o.le-v7/lib<name>.so` for `Qnx/Cascades`; a descriptor that
   expects an executable then fails with `Invalid asset path`. Without it (`TEMPLATE = app` + the libs) the output is a plain
   executable wherever `DESTDIR` says. No Momentics `config.pri`: a self-contained `.pro` builds fine. `main` is `Q_DECL_EXPORT`.

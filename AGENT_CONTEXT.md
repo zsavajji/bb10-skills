@@ -72,7 +72,7 @@ Detail: `docs/02-architecture.md`.
 | Cascades UI, anything linking Qt or `bb::*` | NDK `qcc`: GCC 4.6.3 (default, write C++98), or GCC 4.8.3 with `-std=gnu++11` | [`yamsergey/bb10-ndk:0.6`](https://hub.docker.com/r/yamsergey/bb10-ndk) (Native SDK 10.3.1; linux/386, emulated on Apple Silicon and other non-x86 hosts) |
 | Engine, ported libraries | `bb10-clang++` (clang 19, libc++ 19.1.7, C++20) | an image `FROM bb10-cxx20:<pinned tag>` ([`bb10-cxx20`](https://github.com/zsavajji/bb10-cxx20), published as [`ghcr.io/zsavajji/bb10-cxx20`](https://github.com/zsavajji/bb10-cxx20/pkgs/container/bb10-cxx20)) |
 | A C++14+ library the UI must call | clang, into its own `.so` that exports a C API only | the engine's image |
-| Go engine | go-qnx 1.27.2, cgo through `bb10-clang` | bb10-cxx20 plus go-qnx |
+| Go engine | go-qnx 1.27.4 (`ghcr.io/zsavajji/go-qnx`), cgo through `bb10-clang` | bb10-cxx20 plus go-qnx |
 
 **The GCC question.** The NDK has exactly two GCCs, 4.6.3 and 4.8.3 (there is no 4.8.4). 4.8.3 ships with GNU
 libstdc++ only, but Qt and Cascades are built against Dinkumware. So the 4.8.3 setup compiles with the `_cpp`
@@ -147,6 +147,10 @@ items (`Rectangle`, `MouseArea`), no `Timer` in Cascades (register `QTimer`), `o
 log `QmlDocument::errors()`, and route `qDebug` to a file, since it goes nowhere on the phone.
 
 Detail: `docs/07-ui-build.md`; for writing Cascades code, `skills/bb10-cascades` and `skills/bb10-pitfalls`.
+
+**Speed:** in the qcc `.pro`, add `-mfpu=neon` to C and C++ flags and remove `-fstack-protector-all` (keep
+`-fstack-protector`); write NEON intrinsics for pixel loops. LTO, PGO and clang aren't worth it. Numbers and the
+benchmark method: [docs/07-ui-build.md](docs/07-ui-build.md) section 10.
 
 ## 7. Packaging
 

@@ -32,8 +32,8 @@ Sources: [skills/bb10-build-deploy](../skills/bb10-build-deploy/SKILL.md), [samp
 
 ```sh
 docker build -t bb10-cxx20 .                                  # from the bb10-cxx20 repo's Dockerfile: builds LLVM runtimes, about 3 min
-docker build -f Dockerfile.release -t bb10-cxx20:19.1.7-5 .   # same image from a release tarball (checked against its sha256), no build
-docker pull ghcr.io/zsavajji/bb10-cxx20:latest                # published image (also :v19.1.7-5)
+docker build -f Dockerfile.release -t bb10-cxx20:19.1.7-6 .   # same image from a release tarball (checked against its sha256), no build
+docker pull ghcr.io/zsavajji/bb10-cxx20:latest                # published image (also :v19.1.7-6)
 ```
 
 `Dockerfile` and `Dockerfile.release` both start from XIAZY's image pinned by digest (`ghcr.io/xiazy/blackberry10-toolchain@sha256:60ce49510a37ed92368cca010bbaabf97b12d209b9fab179e8491b266bb2578f`).
@@ -43,16 +43,17 @@ docker pull ghcr.io/zsavajji/bb10-cxx20:latest                # published image 
 | App | Base tag | Where |
 |---|---|---|
 | bbmusic, phoenix | `bb10-cxx20:latest` | [samples/docker/Dockerfile.wolfssl-curl-opus](../samples/docker/Dockerfile.wolfssl-curl-opus), [samples/docker/Dockerfile.openssl-curl](../samples/docker/Dockerfile.openssl-curl) |
-| hyperberry | `bb10-cxx20:19.1.7-5-build` | [samples/docker/Dockerfile.go](../samples/docker/Dockerfile.go) |
+| hyperberry | `bb10-cxx20:19.1.7-6-build` | [samples/docker/Dockerfile.go](../samples/docker/Dockerfile.go) |
 | tengram | `bb10-cxx20:emutls-lto` (build arg `BASE`) | [samples/docker/Dockerfile.tdlib](../samples/docker/Dockerfile.tdlib), [samples/third-party/build-deps.sh](../samples/third-party/build-deps.sh) |
 
-**A new app should pin a release tag, not `latest`.** HyperBerry's Dockerfile comment says why: `19.1.7-5` has "frame pointers dropped when optimising, the unwinder and mbsnrtowcs fixes, faster emulated TLS, the LTO plugin; 'latest' was still the 2026-10-31 image (the user's ask, 2026-11-17)". `latest` is whatever was last built locally, so a rebuild on another Mac can silently differ. What each release fixed ([bb10-cxx20](https://github.com/zsavajji/bb10-cxx20)'s release notes):
+**A new app should pin a release tag, not `latest`.** HyperBerry's Dockerfile comment on its move to `19.1.7-5` said why: it had "frame pointers dropped when optimising, the unwinder and mbsnrtowcs fixes, faster emulated TLS, the LTO plugin; 'latest' was still the 2026-10-31 image (the user's ask, 2026-11-17)". `latest` is whatever was last built locally, so a rebuild on another Mac can silently differ. What each release fixed ([bb10-cxx20](https://github.com/zsavajji/bb10-cxx20)'s release notes):
 
 | Release | Change that matters to you |
 |---|---|
 | (v19.1.7-3 and before) | exceptions crashed on the phone until the `R_ARM_TARGET2` fix |
 | v19.1.7-4 | driver links `libunwind.a` first, so `-lz` no longer hijacks `throw`; `@file` response files; `mbsnrtowcs`; no frame pointers when optimising |
 | v19.1.7-5 | `-flto` / `-flto=thin`, CMake IPO; faster `thread_local`; `thread_local` destructors at thread exit |
+| v19.1.7-6 | **NEON by default** (`-mfpu=neon`; on a Q10 integer loops 2.6-10x faster, float loops stay scalar without `-ffast-math`); `temp_directory_path()` falls back to `/var/tmp` |
 
 `tengram`'s `emutls-lto` is "bb10-cxx20 with the QNX emulated-TLS runtime and LTO" ([samples/docker/Dockerfile.tdlib](../samples/docker/Dockerfile.tdlib)); Tengram's draft LTO patch is the draft that became the LTO support. The unwinder trap and its fix are in [04-engine-cxx20.md](04-engine-cxx20.md) section 3.
 
@@ -63,7 +64,7 @@ All four layer on bb10-cxx20; each pins its downloads by sha256 (`ADD --checksum
 - **`phoenix-build`** ([samples/docker/Dockerfile.openssl-curl](../samples/docker/Dockerfile.openssl-curl), `FROM bb10-cxx20:latest`): adds `perl patch make`, then **OpenSSL 3.5.7** (static, ARM assembly, with the required `armcap` patch) and **libcurl 8.23.0** (OpenSSL backend), both installed in `/opt/phoenix`.
 - **`bbmusic-build`** ([samples/docker/Dockerfile.wolfssl-curl-opus](../samples/docker/Dockerfile.wolfssl-curl-opus), `FROM bb10-cxx20:latest`): **wolfSSL 5.9.4**, **libcurl 8.23.0** (wolfSSL backend) and **libopus 1.6.1**, installed in `/opt/bbmusic`.
 - **`tengram-build`** ([samples/docker/Dockerfile.tdlib](../samples/docker/Dockerfile.tdlib), `ARG BASE=bb10-cxx20:emutls-lto`): adds `gperf perl patch libssl-dev zlib1g-dev` (the last two for the **host** pass of TDLib's `prepare_cross_compiling`). OpenSSL, libopus and TDLight are built into `build/prefix` by `scripts/build-deps.sh`, not baked into the image.
-- **`hyperberry-build`** ([samples/docker/Dockerfile.go](../samples/docker/Dockerfile.go), `FROM bb10-cxx20:19.1.7-5-build`): copies `/usr/local/go` from XIAZY's **go-qnx 1.27.2** image (pinned by digest), sets `PATH` and `GOTOOLCHAIN=local`, builds **libopus 1.6.1 twice** (BB10 sysroot, and the host for PC tests), adds `patch` for the hypermeow patches. See [05-engine-go.md](05-engine-go.md).
+- **`hyperberry-build`** ([samples/docker/Dockerfile.go](../samples/docker/Dockerfile.go), `FROM bb10-cxx20:19.1.7-6-build`): copies `/usr/local/go` from the **zsavajji/go-qnx 1.27.4** image (pinned by digest), sets `PATH` and `GOTOOLCHAIN=local`, builds **libopus 1.6.1 twice** (BB10 sysroot, and the host for PC tests), adds `patch` for the hypermeow patches. See [05-engine-go.md](05-engine-go.md).
 
 The UI of every app is built in `yamsergey/bb10-ndk:0.6`, not in these images. (Tengram also runs `qcc -Vgcc_ntoarmv7le` there to build its `tg-install-patcher` helper and `tgs_check`: Tengram's build-app script, [samples/third-party/build-tgs.sh](../samples/third-party/build-tgs.sh).)
 
@@ -136,7 +137,7 @@ C libraries (OpenSSL, zlib, mongoose) can also be built with the NDK's GCC 4.6 a
 | Library needing C++14+ that the UI must call | `bb10-clang++` into its own `.so` with a C API only | the app's build image | one standard library per module; no `std::` across the boundary |
 | C library for the engine | `bb10-clang` | same | matches the engine's runtime |
 | C library for the UI | NDK GCC (`ntoarmv7-gcc`) or clang with care (aeabi helpers) | NDK image / app image | see 3.3 |
-| Go engine | go-qnx 1.27.2; C parts by `bb10-clang` | `hyperberry-build` | [05-engine-go.md](05-engine-go.md) |
+| Go engine | go-qnx 1.27.4; C parts by `bb10-clang` | `hyperberry-build` | [05-engine-go.md](05-engine-go.md) |
 | Tiny helper started by the app (Tengram's `tg-install-patcher`) | `qcc -Vgcc_ntoarmv7le -O2` | NDK image | Tengram's build-app script |
 
 ## 4. Docker traps recorded in the sources

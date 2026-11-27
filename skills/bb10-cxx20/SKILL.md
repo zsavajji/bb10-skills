@@ -1,13 +1,13 @@
 ---
 name: bb10-cxx20
-description: Build C and C++20 programs and libraries for BlackBerry 10 (QNX 6.6, ARMv7 softfp) with the bb10-cxx20 toolchain — clang 19 plus LLVM libc++/libc++abi/libunwind 19.1.7 on XIAZY's blackberry10-toolchain Docker image (pin the release tag 19.1.7-5). Use when compiling native non-Cascades code for BB10 with modern C++ (std::thread, <format>, ranges, <filesystem>, exceptions, LTO), porting a Linux/POSIX library or a browser/JS engine to BB10, cross-building with CMake or autotools for BB10, choosing static vs shared libc++, linking zlib (the -lz unwinder trap), exposing a C++14+ library to the Cascades UI through a C-API-only .so, running a test binary on the phone (pathtrust), or debugging link errors, missing libc symbols, or exception crashes on a BB10 phone. Not for Cascades/Qt 4.8 UI code, which stays on the SDK's qcc (see bb10-build-deploy).
+description: Build C and C++20 programs and libraries for BlackBerry 10 (QNX 6.6, ARMv7 softfp) with the bb10-cxx20 toolchain — clang 19 plus LLVM libc++/libc++abi/libunwind 19.1.7 on XIAZY's blackberry10-toolchain Docker image (pin the release tag 19.1.7-6). Use when compiling native non-Cascades code for BB10 with modern C++ (std::thread, <format>, ranges, <filesystem>, exceptions, LTO), porting a Linux/POSIX library or a browser/JS engine to BB10, cross-building with CMake or autotools for BB10, choosing static vs shared libc++, linking zlib (the -lz unwinder trap), exposing a C++14+ library to the Cascades UI through a C-API-only .so, running a test binary on the phone (pathtrust), or debugging link errors, missing libc symbols, or exception crashes on a BB10 phone. Not for Cascades/Qt 4.8 UI code, which stays on the SDK's qcc (see bb10-build-deploy).
 ---
 
 # bb10-cxx20: modern C++ for BlackBerry 10
 
-Image: **pin a release tag, not `latest`**: `bb10-cxx20:19.1.7-5`, built from the release with
-`docker build -f Dockerfile.release -t bb10-cxx20:19.1.7-5 .` (a Dockerfile that starts from XIAZY's image, pinned by digest, and
-unpacks the release tarball, checked by sha256), or the published `ghcr.io/zsavajji/bb10-cxx20:v19.1.7-5` (also `:latest`; x86-64 and
+Image: **pin a release tag, not `latest`**: `bb10-cxx20:19.1.7-6`, built from the release with
+`docker build -f Dockerfile.release -t bb10-cxx20:19.1.7-6 .` (a Dockerfile that starts from XIAZY's image, pinned by digest, and
+unpacks the release tarball, checked by sha256), or the published `ghcr.io/zsavajji/bb10-cxx20:v19.1.7-6` (also `:latest`; x86-64 and
 arm64, so it runs natively on Apple Silicon). `latest` is whatever was last built locally, so a rebuild on another Mac can silently differ.
 Where each app got its base tag, and the NDK image: [03](../../docs/03-toolchains.md) section 1. The engine build in full:
 [04](../../docs/04-engine-cxx20.md). Everything in [bb10-cxx20](https://github.com/zsavajji/bb10-cxx20) is the user's repo: do not change it from an app.
@@ -17,6 +17,7 @@ Where each app got its base tag, and the NDK image: [03](../../docs/03-toolchain
 | v19.1.7-3 and before | every `throw` crashed on the phone until the `R_ARM_TARGET2` fix |
 | **v19.1.7-4** | the driver links `libunwind.a` whole, before the program's objects and libraries, so `-lz` no longer hijacks `throw`; `@file` response files expanded by the driver (CMake's Ninja); `mbsnrtowcs` counts a cut character's bytes as glibc does; **no frame pointers when optimising** (`-fno-omit-frame-pointer` still wins; about 2% less text); a program using neither exceptions nor libc++ is about 36 KB larger (the unwinder is always linked in) |
 | **v19.1.7-5** | **LTO**: `-flto` and `-flto=thin`, CMake `CMAKE_INTERPROCEDURAL_OPTIMIZATION` and `check_ipo_supported()`, archives of bitcode objects indexed by the armnto `ar`; **faster `thread_local`**: `src-rt/emutls.c` reads the thread's array from `_cpupage_ptr->tls` with no call or barrier, **33 ns per access against 66 ns** with compiler-rt's, measured on a phone (OS 10.3.3, 2026-11-16, `tlsbench`); **`thread_local` destructors now run** at thread exit (before, a thread's variables were freed first) |
+| **v19.1.7-6** | **NEON by default** (`-mfpu=neon`, same softfp ABI): on a Q10 a byte-blending loop 10x, an int16 dot product 7x, an int32 add 2.6x faster; float loops stay scalar without `-ffast-math`. `temp_directory_path()` falls back to `/var/tmp` |
 
 ## Which compiler for which code
 
@@ -42,7 +43,7 @@ containers or exceptions between a qcc module and a libc++ module.
 
 ```sh
 # one-off, in the current directory
-docker run --rm -v "$PWD:/src" -w /src bb10-cxx20:19.1.7-5 bb10-clang++ -O2 app.cpp -o app
+docker run --rm -v "$PWD:/src" -w /src bb10-cxx20:19.1.7-6 bb10-clang++ -O2 app.cpp -o app
 
 bb10-clang++ -O2 -c engine.cpp                    # -std=gnu++20 unless -std= is given
 bb10-clang++ -O2 engine.o -o engine               # static, hermetic C++ runtime (default)

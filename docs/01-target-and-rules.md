@@ -34,7 +34,7 @@ Every fact below is fixed. Each later doc assumes them. Code referenced here is 
 | NEON | every BB10 CPU has NEON; **QNX has no runtime CPU detection**, so NEON is fixed at configure time (`--disable-rtcd`, `-mfpu=neon`) | [samples/docker/Dockerfile.go](../samples/docker/Dockerfile.go), [samples/docker/Dockerfile.wolfssl-curl-opus](../samples/docker/Dockerfile.wolfssl-curl-opus) |
 | UI toolkit | **Qt 4.8** (4.8.6 on the phone) + **Cascades `bb.cascades 1.4`**, not Qt 5 | HyperBerry notes (`libQtNetwork.so.4.8.6`); [samples/ui/app-gcc483.pro](../samples/ui/app-gcc483.pro) (Qt 4.8.6 SQLite driver) |
 | UI compiler | NDK `qcc`: GCC 4.6.3 (default) or 4.8.3 with `-std=gnu++11`; there is no 4.8.4 ([03-toolchains.md](03-toolchains.md)) | [samples/ui/app-gcc483.pro](../samples/ui/app-gcc483.pro) |
-| Engine compiler | clang 19 + libc++ 19.1.7 (C++20), or go-qnx 1.27.2 (Go) | [bb10-cxx20](https://github.com/zsavajji/bb10-cxx20)'s README, HyperBerry notes |
+| Engine compiler | clang 19 + libc++ 19.1.7 (C++20), or go-qnx 1.27.4 (Go) | [bb10-cxx20](https://github.com/zsavajji/bb10-cxx20)'s README, HyperBerry notes |
 | Phone SQLite | 3.8.7.1 measured at `/usr/lib/libsqlite3.so.1` (HyperBerry); BBMusic's plan says 3.7.14.1 "(the user, 2026-11-14)". Both have WAL. Write SQL both accept | HyperBerry notes 0.4; BBMusic notes |
 | Phone TLS (system) | OpenSSL 1.0.2g, TLS 1.2 capable; CA store from 2018, no TLS 1.3, no redirects followed by Qt. Apps still ship their own TLS and CA bundle ([06-third-party-libs.md](06-third-party-libs.md)) | HyperBerry notes (Qt 4.8's TLS entry) |
 | `ARG_MAX` | 61440: long command lines to child processes do not fit | [skills/bb10-build-deploy/SKILL.md](../skills/bb10-build-deploy/SKILL.md) |

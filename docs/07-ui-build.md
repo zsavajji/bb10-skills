@@ -361,6 +361,56 @@ Pin each download by commit and sha256, and keep fetched files out of git. Icon 
 - Docker here is rootless: files written as root in the container belong to the user on the host. Never `chown` inside the container ([skills/bb10-build-deploy/SKILL.md](../skills/bb10-build-deploy/SKILL.md)).
 - Fixed paths: NDK target `/root/bbndk/target_10_3_1_995/qnx6`, host tools `/root/bbndk/host_10_3_1_12/linux/x86/usr/bin` ([03-toolchains.md](03-toolchains.md)).
 
+## 10. Compiler flags and speed, measured
+
+Measured 2026-11-27 on a Classic (Q20, MSM8960, 10.3.3) with HyperBerry's flags and qcc 4.8.3. Baseline: what the
+`blackberry-armv7le-qcc` spec gives, `-O2 -mcpu=cortex-a9 -fstack-protector -fstack-protector-all`. Every variant's
+output matched the baseline's checksum. Not measured: gcc 4.6.3, the Passport and other SoCs, `-O3`.
+
+**Use in every qcc app:**
+
+```qmake
+QMAKE_CFLAGS += -mfpu=neon
+QMAKE_CXXFLAGS += -mfpu=neon
+QMAKE_CFLAGS -= -fstack-protector-all    # plain -fstack-protector stays
+QMAKE_CXXFLAGS -= -fstack-protector-all
+```
+
+Then delete the build directory: make doesn't rebuild objects for a flag change.
+
+libwebp 1.4.0 decode, ms per frame (two animated stickers, one photo):
+
+| Build | anim 1 | anim 2 | still | Verdict |
+|---|---|---|---|---|
+| baseline | 29.85 | 22.75 | 2.55 | |
+| + `-mfpu=neon` | 12.29 | 12.96 | 1.97 | **use**: 1.3-2.4x |
+| + no `-all` | 10.79 | 12.21 | 1.79 | **use**: another 6-14% |
+| + `-flto` | 10.74 | 12.11 | 1.78 | skip: under 1% |
+| + PGO | 10.59 | 11.94 | 1.80 | skip: about 2%, and a training run on the phone per change |
+| clang 19 `.so` | 10.45 | 11.92 | 1.74 | skip: 1-3%, and one more library to ship |
+
+NV12 frame rotation, 90 degrees into a Screen NV12 window buffer: plain loop against NEON intrinsics
+(8x8 `vtrn` blocks, HyperBerry's `app/src/Nv12Rotate.h`):
+
+| Frame | Plain | NEON |
+|---|---|---|
+| 640x480 | 2.08 ms | 0.87 ms |
+| 1280x720 | 14.40 ms | 4.06 ms |
+
+- **Hand-written NEON is worth it on pixel loops**: gcc doesn't vectorise at `-O2`. `-mfpu=neon` is needed for
+  `__ARM_NEON__`, or the intrinsics' `#if` leaves the plain loop.
+- **`-flto` works** with qcc 4.8.3 (it inlines across files) and HyperBerry's UI `.so` links with it, but the size
+  moved by 172 bytes: with `-fPIC` and everything exported there is little to inline.
+- **PGO works**: `-fprofile-generate`, link with the host SDK's `.../arm-unknown-nto-qnx8.0.0eabi/4.8.3/libgcov.a`
+  (qcc doesn't add it), run with `GCOV_PREFIX` and `GCOV_PREFIX_STRIP` set, copy the `.gcda` back, `-fprofile-use`.
+- **clang objects don't link into a qcc binary** (`__aeabi_memcpy` and friends undefined): make a `.so` with
+  `bb10-clang -shared` behind a C API.
+- These numbers are for pixel work. Time spent in Cascades and Qt doesn't change: the system libraries are built.
+
+**Benchmarking on the phone:** root gets "Operation not permitted" running a copied binary; copy it to
+`/accounts/devuser/...` and run `on -u devuser ./bench`. `CLOCK_MONOTONIC` steps in about 1 ms, so time hundreds
+of ms of repeats. Under strict `-std=c99`, define `_QNX_SOURCE` for `clock_gettime`.
+
 ## Where sources disagree
 
 - hyperberry's notes say "GCC 4.6.3, so C++98". That holds for phoenix and bbmusic only.
